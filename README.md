@@ -18,9 +18,9 @@ then generate a script that auto-fills the whole month on the logbook site in on
    day untouched. Sundays are auto-locked as Off (no button on the site).
 3. **Fill it faster**:
    - **Set all time** / **Set all text** — apply one value to every row at once.
-   - **Add subheader** — prepend a tag like `(Allianz Project)` to Activity
-     for a From day–To day range, e.g. turns `ticket aca-1497` into
-     `(Allianz Project) ticket aca-1497`.
+   - **Add subheader** — prepend a tag like `(XXXXX Project)` to Activity
+     for a From day–To day range, e.g. turns `Ticket AX-122` into
+     `(XXXXX Project) Ticket AX-122`.
    - **Import Excel…** — load Activity/Description straight from your
      company's monthly timesheet `.xlsx` (Task → Activity, Detail →
      Description) instead of typing everything by hand. Days count, Start
