@@ -1,93 +1,52 @@
+# [AFX] Logbook Entry Editor
+
+A desktop tool to fill out the Binus campus logbook fast. Builds entries once in a simple table, 
+then generate a script that auto-fills the whole month on the logbook site in one paste.
+
 ![UI](UI.png)
 
 ## Requirements
 
-- Python 3.x (tkinter ships with the standard installer — no `pip install` needed)
+- Python 3.x (tkinter ships with it — no extra install needed to run the UI)
+- `openpyxl` — only needed for **Import Excel…**: `pip install openpyxl`
 
-## 1. Run the UI
+## How to use it
 
-```bash
-python logbook_ui.py
-```
-
-## 2. Build your entries
-
-1. **Days** — number of logbook rows. **Start weekday** — weekday of day 1.
-   Click **Rebuild rows** to regenerate the table.
-2. Per row, set **Clock In** / **Clock Out** (time text + `am`/`pm` selector),
-   **Activity**, and **Description**.
-3. Per-row flags:
-   - **Off** — mark the day OFF. Fields disable; the script clicks the Off
-     button for that row.
-   - **Skip** — leave the day completely untouched. The row's button is not
-     clicked at all (nothing filled, no Off). Use it for days already filled
-     correctly that you don't want changed. Disables the rest of the row.
-4. Shortcuts:
-   - **Set all time** → fill In/Out + am/pm → **Apply times to all**.
-   - **Set all text** → fill Activity/Description → **Apply text to all**.
-   - Both skip Off and Skip rows. Tweak individual rows afterward.
-   - **Reset All** → confirm popup → restores every row to default times,
-     blank text, and clears all Off/Skip flags.
-5. *(Optional)* **Save JSON…** to keep your values, **Load JSON…** to reload them later.
-
-> Row order must match the row order on the logbook page (top to bottom).
-
-## 3. Generate the script
-
-Click **Generate script.js + copy**. This:
-
-- writes `script.generated.js` next to the UI, and
-- copies the full script to your clipboard.
-
-## 4. Run it on the target site
-
-1. Open the logbook page in your browser, on the month/view that shows the rows.
-2. Open DevTools console: `F12` (or `Ctrl+Shift+J`), go to the **Console** tab.
-3. If the console asks, type `allow pasting` and press Enter.
-4. Paste (`Ctrl+V`) the script and press **Enter**.
-
-The script grabs **every** day button in page order (`.detailsbtn`) — both
-empty (blue) and already-filled (orange) — and maps `buttons[i]` to
-`entries[i]`. For each row it either fills + submits, marks OFF, or (for **Skip**
-rows) does nothing and moves on.
-
-## How button matching works
-
-- One combined array in document order, so index `i` always lines up with day
-  `i` regardless of button color. This is why the row order in the UI must match
-  the page top-to-bottom.
-- Filling a day that's already filled (orange) just **overwrites** it — no extra
-  flag needed.
-- **Skip** is the only way to leave a day alone; its button is never clicked.
-- **Sundays** are auto-OFF on the site and have **no button**. In the UI their
-  rows are forced **Off** and locked (flags can't be toggled, fields disabled),
-  and they are dropped from the generated `entries[]` so the rest stays aligned.
-  Set **Start weekday** correctly so the right rows are detected as Sundays. The
-  generate popup reports how many were excluded.
-
-## Build a standalone executable
-
-Bundle the UI into a single executable (no Python needed to run it):
-
-1. Install PyInstaller (once):
-
-   ```bash
-   pip install pyinstaller
-   ```
-
-2. Build:
-
-   ```bash
-   pyinstaller --onefile logbook_ui.py
-   ```
-
-The binary lands in `dist/` (e.g. `dist/logbook_ui.exe` on Windows). Build
-artifacts (`build/`, `dist/`, `*.spec`) are generated and safe to delete.
+1. **Run it**: `python logbook_ui.py`
+2. **Fill the table**: set Days/Start weekday, then per row set Clock In/Out,
+   Activity, Description. Mark **Off** for days off, or **Skip** to leave a
+   day untouched. Sundays are auto-locked as Off (no button on the site).
+3. **Fill it faster**:
+   - **Set all time** / **Set all text** — apply one value to every row at once.
+   - **Add subheader** — prepend a tag like `(Allianz Project)` to Activity
+     for a From day–To day range, e.g. turns `ticket aca-1497` into
+     `(Allianz Project) ticket aca-1497`.
+   - **Import Excel…** — load Activity/Description straight from your
+     company's monthly timesheet `.xlsx` (Task → Activity, Detail →
+     Description) instead of typing everything by hand. Days count, Start
+     weekday, and Off days (rows with `0:00`/`0:00`) are detected automatically.
+   - **Save/Load JSON…** — keep your entries to reuse or edit later.
+4. **Generate**: click **Generate script.js + copy** — writes
+   `script.generated.js` and copies it to your clipboard.
+5. **Run it on the site**: open the logbook page, open DevTools console
+   (`F12`), type `allow pasting` if prompted, paste, and hit Enter.
 
 ## Notes
 
-- Assumes exactly one `.detailsbtn` per day, in day order. If a filled day
-  rendered no button, indexes would shift — Skip the affected rows or use
-  matching day count.
-- Time values are always well-formed (`09:00 am`) because am/pm is a selector,
-  not free text.
+- Row order in the UI must match the page's day order top to bottom.
+- The script matches `.detailsbtn` buttons in page order to your rows —
+  filling an already-filled day just overwrites it.
+- Assumes one button per day; if a filled day has no button, indexes shift —
+  Skip that row or adjust the day count.
+
+## Build a standalone executable
+
+No Python needed to run the built binary:
+
+```bash
+pip install pyinstaller openpyxl
+pyinstaller --onefile logbook_ui.py
+```
+
+Binary lands in `dist/` (e.g. `dist/logbook_ui.exe` on Windows). `build/`,
+`dist/`, and `*.spec` are build artifacts — safe to delete.

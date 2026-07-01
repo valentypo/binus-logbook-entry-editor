@@ -9,10 +9,14 @@ Run:
 
 from __future__ import annotations
 
+import datetime
 import json
+import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+
+import openpyxl
 
 DEFAULT_IN_TIME = "09:00"
 DEFAULT_OUT_TIME = "05:00"
@@ -21,6 +25,67 @@ DEFAULT_OUT_AMPM = "pm"
 AMPM = ["am", "pm"]
 
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+# Company timesheet layout: data rows start at row 14, with NO/DAY/DATE/TASK/
+# PROJECT NAME/DETAIL/S-O NO/IN/OUT/TOTAL in columns A-J.
+TIMESHEET_DATA_START_ROW = 14
+COL_NO = 1
+COL_DAY = 2
+COL_TASK = 4
+COL_DETAIL = 6
+COL_IN = 8
+COL_OUT = 9
+
+
+def _is_zero_time(value: object) -> bool:
+    """True for empty cells and 0:00-style values (non-working days)."""
+    if value is None:
+        return True
+    if isinstance(value, datetime.time):
+        return value.hour == 0 and value.minute == 0
+    text = str(value).strip()
+    return text in ("", "0", "0:00", "00:00", "0:00:00")
+
+
+def parse_timesheet_excel(path: str) -> tuple[str, list[dict[str, str] | None]]:
+    """Read the company timesheet .xlsx and return (start_weekday, entries).
+
+    entries follows the same shape as Row.to_entry(): None for an Off day,
+    otherwise a dict with default clock times and Task/Detail mapped to
+    Activity/Description.
+    """
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb.active
+
+    entries: list[dict[str, str] | None] = []
+    start_weekday = ""
+    row = TIMESHEET_DATA_START_ROW
+    while True:
+        no_val = ws.cell(row=row, column=COL_NO).value
+        if no_val is None or str(no_val).strip() == "":
+            break
+
+        day_val = ws.cell(row=row, column=COL_DAY).value
+        weekday = str(day_val).strip()[:3].title() if day_val else ""
+        if not start_weekday and weekday in WEEKDAYS:
+            start_weekday = weekday
+
+        in_val = ws.cell(row=row, column=COL_IN).value
+        out_val = ws.cell(row=row, column=COL_OUT).value
+        if _is_zero_time(in_val) and _is_zero_time(out_val):
+            entries.append(None)
+        else:
+            task_val = ws.cell(row=row, column=COL_TASK).value
+            detail_val = ws.cell(row=row, column=COL_DETAIL).value
+            entries.append({
+                "editClockIn": join_time(DEFAULT_IN_TIME, DEFAULT_IN_AMPM),
+                "editClockOut": join_time(DEFAULT_OUT_TIME, DEFAULT_OUT_AMPM),
+                "editActivity": str(task_val).strip() if task_val else "",
+                "editDescription": str(detail_val).strip() if detail_val else "",
+            })
+        row += 1
+
+    return start_weekday or "Mon", entries
 
 
 def split_time(value: str) -> tuple[str, str]:
@@ -98,8 +163,6 @@ class Row:
         self.in_ampm = tk.StringVar(value=DEFAULT_IN_AMPM)
         self.out_time = tk.StringVar(value=DEFAULT_OUT_TIME)
         self.out_ampm = tk.StringVar(value=DEFAULT_OUT_AMPM)
-        self.activity = tk.StringVar(value="")
-        self.description = tk.StringVar(value="")
 
         self.day_label = ttk.Label(parent, width=10, anchor="w")
         self.off_chk = ttk.Checkbutton(
@@ -115,8 +178,18 @@ class Row:
         self.out_frame, self.out_widgets = self._time_cell(
             parent, self.out_time, self.out_ampm
         )
-        self.activity_e = ttk.Entry(parent, textvariable=self.activity, width=38)
-        self.description_e = ttk.Entry(parent, textvariable=self.description, width=46)
+        self.activity_e = tk.Text(
+            parent, width=28, height=3, wrap="word", relief="solid", borderwidth=1,
+            font=("TkDefaultFont", 9),
+        )
+        self.description_e = tk.Text(
+            parent, width=34, height=3, wrap="word", relief="solid", borderwidth=1,
+            font=("TkDefaultFont", 9),
+        )
+        for text_widget in (self.activity_e, self.description_e):
+            text_widget.bind("<MouseWheel>", app.forward_mousewheel)
+            text_widget.bind("<Button-4>", app.forward_mousewheel)
+            text_widget.bind("<Button-5>", app.forward_mousewheel)
 
         self.widgets = [
             self.day_label,
@@ -147,6 +220,26 @@ class Row:
 
     def set_day_label(self, text: str) -> None:
         self.day_label.config(text=text)
+
+    def get_activity(self) -> str:
+        return self.activity_e.get("1.0", "end-1c")
+
+    def set_activity(self, text: str) -> None:
+        state = self.activity_e.cget("state")
+        self.activity_e.config(state="normal")
+        self.activity_e.delete("1.0", "end")
+        self.activity_e.insert("1.0", text)
+        self.activity_e.config(state=state)
+
+    def get_description(self) -> str:
+        return self.description_e.get("1.0", "end-1c")
+
+    def set_description(self, text: str) -> None:
+        state = self.description_e.cget("state")
+        self.description_e.config(state="normal")
+        self.description_e.delete("1.0", "end")
+        self.description_e.insert("1.0", text)
+        self.description_e.config(state=state)
 
     def _on_off(self) -> None:
         disabled = self.off_var.get()
@@ -186,8 +279,8 @@ class Row:
         return {
             "editClockIn": join_time(self.in_time.get(), self.in_ampm.get()),
             "editClockOut": join_time(self.out_time.get(), self.out_ampm.get()),
-            "editActivity": self.activity.get(),
-            "editDescription": self.description.get(),
+            "editActivity": self.get_activity(),
+            "editDescription": self.get_description(),
         }
 
     def load(self, entry: dict[str, str] | None) -> None:
@@ -210,8 +303,8 @@ class Row:
         self.in_ampm.set(ia)
         self.out_time.set(ot)
         self.out_ampm.set(oa)
-        self.activity.set(entry.get("editActivity", ""))
-        self.description.set(entry.get("editDescription", ""))
+        self.set_activity(entry.get("editActivity", ""))
+        self.set_description(entry.get("editDescription", ""))
 
 
 class App:
@@ -296,6 +389,29 @@ class App:
             bulk2, text="Apply text to all", command=self.apply_text_all
         ).pack(side="left", padx=4)
 
+        # ---- subheader prepend ----
+        bulk3 = ttk.LabelFrame(self.root, text="Add subheader", padding=8)
+        bulk3.pack(fill="x", padx=8, pady=(0, 8))
+
+        ttk.Label(bulk3, text="Subheader:").pack(side="left")
+        self.subheader_var = tk.StringVar(value="")
+        ttk.Entry(bulk3, textvariable=self.subheader_var, width=30).pack(
+            side="left", padx=(2, 10)
+        )
+        ttk.Label(bulk3, text="From day:").pack(side="left")
+        self.subheader_from_var = tk.IntVar(value=1)
+        ttk.Spinbox(
+            bulk3, from_=1, to=31, textvariable=self.subheader_from_var, width=5
+        ).pack(side="left", padx=(2, 10))
+        ttk.Label(bulk3, text="To day:").pack(side="left")
+        self.subheader_to_var = tk.IntVar(value=1)
+        ttk.Spinbox(
+            bulk3, from_=1, to=31, textvariable=self.subheader_to_var, width=5
+        ).pack(side="left", padx=(2, 10))
+        ttk.Button(
+            bulk3, text="Apply subheader", command=self.apply_subheader
+        ).pack(side="left", padx=4)
+
     def _build_table(self) -> None:
         # scrollable canvas holding the grid
         container = ttk.Frame(self.root)
@@ -314,10 +430,11 @@ class App:
         canvas.pack(side="left", fill="both", expand=True)
         vbar.pack(side="right", fill="y")
 
-        canvas.bind_all(
-            "<MouseWheel>",
-            lambda e: canvas.yview_scroll(int(-e.delta / 120), "units"),
-        )
+        self.canvas = canvas
+        canvas.bind_all("<MouseWheel>", self.forward_mousewheel)
+        # X11 (Linux) sends Button-4/5 wheel events instead of <MouseWheel>
+        canvas.bind_all("<Button-4>", self.forward_mousewheel)
+        canvas.bind_all("<Button-5>", self.forward_mousewheel)
 
         headers = ["Day", "Off", "Skip", "Clock In", "Clock Out",
                    "Activity", "Description"]
@@ -333,6 +450,9 @@ class App:
             side="left", padx=4
         )
         ttk.Button(bar, text="Save JSON…", command=self.save_json).pack(
+            side="left", padx=4
+        )
+        ttk.Button(bar, text="Import Excel…", command=self.import_excel).pack(
             side="left", padx=4
         )
         ttk.Button(bar, text="Reset All", command=self.reset_all).pack(
@@ -369,6 +489,22 @@ class App:
             if row.weekday == "Sun":
                 row.lock_sunday()
 
+    def forward_mousewheel(self, event: tk.Event) -> str:
+        """Scroll the row table on any mouse wheel event, even over a Text box.
+
+        macOS reports small per-notch deltas (no /120 scaling like Windows),
+        so the two platforms need different unit conversions.
+        """
+        if event.num == 4:
+            self.canvas.yview_scroll(-3, "units")
+        elif event.num == 5:
+            self.canvas.yview_scroll(3, "units")
+        elif sys.platform == "darwin":
+            self.canvas.yview_scroll(int(-event.delta), "units")
+        else:
+            self.canvas.yview_scroll(int(-event.delta / 120), "units")
+        return "break"
+
     def apply_clock_all(self) -> None:
         """Set clock in/out on every non-off row to the bulk values."""
         for row in self.rows:
@@ -394,8 +530,8 @@ class App:
             row.in_ampm.set(DEFAULT_IN_AMPM)
             row.out_time.set(DEFAULT_OUT_TIME)
             row.out_ampm.set(DEFAULT_OUT_AMPM)
-            row.activity.set("")
-            row.description.set("")
+            row.set_activity("")
+            row.set_description("")
             row._on_skip()  # re-enable fields (clears off/skip disabling)
         self._lock_sundays()
 
@@ -404,8 +540,23 @@ class App:
         for row in self.rows:
             if row.off_var.get() or row.skip_var.get():
                 continue
-            row.activity.set(self.bulk_activity.get())
-            row.description.set(self.bulk_description.get())
+            row.set_activity(self.bulk_activity.get())
+            row.set_description(self.bulk_description.get())
+
+    def apply_subheader(self) -> None:
+        """Prepend '<subheader> ' to Activity for rows in the day range."""
+        subheader = self.subheader_var.get().strip()
+        if not subheader:
+            messagebox.showwarning("Add subheader", "Enter a subheader first.")
+            return
+        start = min(self.subheader_from_var.get(), self.subheader_to_var.get())
+        end = max(self.subheader_from_var.get(), self.subheader_to_var.get())
+        for i, row in enumerate(self.rows, start=1):
+            if i < start or i > end:
+                continue
+            if row.off_var.get() or row.skip_var.get():
+                continue
+            row.set_activity(f"{subheader} {row.get_activity()}".rstrip())
 
     # ---- import / export -------------------------------------------------
     def collect(self) -> list[dict[str, str] | None]:
@@ -423,6 +574,34 @@ class App:
         for row, entry in zip(self.rows, data):
             row.load(entry)
         self._lock_sundays()
+
+    def import_excel(self) -> None:
+        path = filedialog.askopenfilename(
+            filetypes=[("Excel", "*.xlsx"), ("All", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            start_weekday, entries = parse_timesheet_excel(path)
+        except Exception as e:
+            messagebox.showerror("Import failed", str(e))
+            return
+        if not entries:
+            messagebox.showwarning(
+                "Import Excel",
+                f"No data rows found starting at row {TIMESHEET_DATA_START_ROW}.",
+            )
+            return
+
+        self.days_var.set(len(entries))
+        self.start_var.set(start_weekday)
+        self.rebuild_rows()
+        for row, entry in zip(self.rows, entries):
+            row.load(entry)
+        self._lock_sundays()
+        messagebox.showinfo(
+            "Imported", f"Imported {len(entries)} rows from {Path(path).name}."
+        )
 
     def save_json(self) -> None:
         path = filedialog.asksaveasfilename(
