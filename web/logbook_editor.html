@@ -2,42 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Logbook Entry Editor (Web)</title>
+<title>AFX Logbook Entry Editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%98%3C/text%3E%3C/svg%3E">
 <script src="vendor/xlsx.full.min.js"></script>
 <style>
+  :root {
+    --bg: #f2f3f5;
+    --surface: #ffffff;
+    --surface-2: #f7f8fa;
+    --border: #e0e2e7;
+    --text: #14161a;
+    --text-dim: #6b7280;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-contrast: #ffffff;
+    --off-bg: #f3f4f6;
+    --sunday-bg: #fdecec;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181c;
+      --surface: #1f2126;
+      --surface-2: #26282e;
+      --border: #34363c;
+      --text: #eef0f2;
+      --text-dim: #9aa1ab;
+      --accent: #7c7ff2;
+      --accent-hover: #8c8ff5;
+      --accent-contrast: #101114;
+      --off-bg: #26282e;
+      --sunday-bg: #3a2323;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
+    }
+  }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; margin: 0; padding: 12px; background: #f5f5f5; color: #111; }
-  h1 { font-size: 18px; margin: 0 0 10px; }
-  fieldset { border: 1px solid #ccc; border-radius: 6px; margin-bottom: 10px; padding: 10px 12px; background: #fff; }
-  legend { font-size: 12px; font-weight: 600; color: #444; padding: 0 4px; }
-  label { font-size: 13px; margin-right: 4px; }
-  input, select, textarea, button { font-size: 13px; font-family: inherit; }
-  input[type=number] { width: 55px; }
-  input[type=text].time { width: 55px; }
-  select.ampm { width: 52px; }
-  .row-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  body {
+    font-family: -apple-system, "Segoe UI", Inter, Arial, sans-serif;
+    margin: 0; padding: 20px; background: var(--bg); color: var(--text);
+    line-height: 1.4;
+  }
+  .page { max-width: 1200px; margin: 0 auto; }
+  header.app-header {
+    margin-bottom: 18px; display: flex; align-items: center; gap: 12px;
+  }
+  .logo-badge {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; letter-spacing: -0.02em;
+    box-shadow: var(--shadow);
+  }
+  header.app-header h1 { font-size: 20px; font-weight: 700; margin: 0 0 2px; letter-spacing: -0.01em; }
+  header.app-header p { font-size: 13px; color: var(--text-dim); margin: 0; }
+
+  fieldset {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 12px; padding: 12px 14px; background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  legend {
+    font-size: 11px; font-weight: 700; color: var(--text-dim);
+    padding: 0 6px; text-transform: uppercase; letter-spacing: .04em;
+  }
+  label { font-size: 13px; margin-right: 2px; color: var(--text-dim); }
+  input, select, textarea, button { font-size: 13px; font-family: inherit; color: var(--text); }
+  input, select, textarea {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  input[type=number] { width: 60px; }
+  input[type=text].time { width: 58px; text-align: center; }
+  select.ampm { width: 56px; }
+  .row-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
   .row-inline:last-child { margin-bottom: 0; }
-  button { padding: 4px 10px; border: 1px solid #999; border-radius: 4px; background: #fafafa; cursor: pointer; }
-  button:hover { background: #eee; }
-  button:disabled { opacity: 0.5; cursor: default; }
-  #tableWrap { overflow: auto; max-height: 65vh; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+
+  button {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface-2); cursor: pointer; font-weight: 600;
+    transition: background .12s, border-color .12s, transform .04s;
+  }
+  button:hover { background: var(--off-bg); border-color: var(--text-dim); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.5; cursor: default; transform: none; }
+  button.primary {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-contrast);
+  }
+  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
+
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  input[type=checkbox]:disabled { cursor: default; }
+
+  #tableWrap {
+    overflow: auto; max-height: 65vh; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+  }
   table { border-collapse: collapse; width: 100%; }
-  th, td { border-bottom: 1px solid #eee; padding: 4px 6px; text-align: left; font-size: 13px; vertical-align: top; }
-  th { position: sticky; top: 0; background: #f0f0f0; z-index: 1; }
-  tr.off td { background: #f7f7f7; color: #999; }
-  tr.sunday td { background: #fdeaea; }
+  th, td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; font-size: 13px; vertical-align: top; }
+  th {
+    position: sticky; top: 0; background: var(--surface-2); z-index: 1;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim);
+  }
+  tbody tr:not(.off):not(.sunday):nth-child(even) td { background: var(--surface-2); }
+  tbody tr:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  tr.off td { background: var(--off-bg); color: var(--text-dim); }
+  tr.off:hover td { background: var(--off-bg); }
+  tr.sunday td { background: var(--sunday-bg); }
   textarea.cell { width: 100%; min-width: 160px; resize: vertical; height: 40px; }
-  textarea.cell:disabled { background: #f2f2f2; color: #999; }
-  .day-label { white-space: nowrap; font-weight: 600; }
-  #footer { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  textarea.cell:disabled { background: var(--off-bg); color: var(--text-dim); }
+  .day-label { white-space: nowrap; font-weight: 700; color: var(--text); }
+
+  #footerWrap {
+    position: sticky; bottom: 0; background: var(--bg); margin-top: 14px; padding: 10px 0 4px;
+  }
+  #footer { display: flex; gap: 8px; flex-wrap: wrap; }
   #footer .spacer { flex: 1; }
-  #scriptOut { width: 100%; height: 160px; margin-top: 8px; font-family: monospace; font-size: 12px; display: none; }
-  .hint { font-size: 11px; color: #777; margin-top: 4px; }
+  #scriptOut {
+    width: 100%; height: 180px; margin-top: 10px; font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px; display: none; border-radius: var(--radius); padding: 10px;
+  }
+  .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+  #statusBar {
+    display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-dim);
+    margin: 0 2px 6px;
+  }
+  #statusBar b { color: var(--text); font-weight: 700; }
 </style>
 </head>
 <body>
+<div class="page">
 
-<h1>Logbook Entry Editor (Web fallback — use if the Python/Tkinter UI won't render)</h1>
+<header class="app-header">
+  <div class="logo-badge">AFX</div>
+  <div>
+    <h1>Logbook Entry Editor</h1>
+    <p>Fills interns' campus logbook fast. build entries here, generate an auto-fill script, paste into the logbook site's console.</p>
+  </div>
+</header>
 
 <fieldset>
   <legend>Row setup</legend>
@@ -49,7 +156,9 @@
       <option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option>
       <option>Fri</option><option>Sat</option><option>Sun</option>
     </select>
-    <button id="rebuildBtn">Rebuild rows</button>
+    <button id="rebuildBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Rebuild rows
+    </button>
   </div>
 </fieldset>
 
@@ -103,18 +212,33 @@
   </table>
 </div>
 
-<div id="footer">
-  <input type="file" id="loadJsonInput" accept=".json" style="display:none">
-  <button id="loadJsonBtn">Load JSON…</button>
-  <button id="saveJsonBtn">Save JSON…</button>
-  <input type="file" id="importExcelInput" accept=".xlsx" style="display:none">
-  <button id="importExcelBtn">Import Excel…</button>
-  <button id="resetAllBtn">Reset All</button>
-  <span class="spacer"></span>
-  <button id="generateBtn">Generate script.js + copy</button>
+<div id="footerWrap">
+  <div id="statusBar"></div>
+  <div id="footer">
+    <input type="file" id="loadJsonInput" accept=".json" style="display:none">
+    <button id="loadJsonBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>Load JSON…
+    </button>
+    <button id="saveJsonBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>Save JSON…
+    </button>
+    <input type="file" id="importExcelInput" accept=".xlsx" style="display:none">
+    <button id="importExcelBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Import (AFX TS) Excel…
+    </button>
+    <button id="resetAllBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Reset All
+    </button>
+    <span class="spacer"></span>
+    <button id="generateBtn" class="primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Generate script.js + copy
+    </button>
+  </div>
 </div>
 
 <textarea id="scriptOut" readonly></textarea>
+
+</div>
 
 <script>
 const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -216,6 +340,20 @@ function renderTable() {
 
     tbody.appendChild(tr);
   });
+  updateStatusBar();
+}
+
+function updateStatusBar() {
+  const total = rows.length;
+  const sundays = rows.filter(r => r.weekday === "Sun").length;
+  const off = rows.filter(r => r.off).length;
+  const skip = rows.filter(r => r.skip).length;
+  const filled = rows.filter(r => !r.off && !r.skip && r.activity.trim()).length;
+  document.getElementById("statusBar").innerHTML =
+    `<span><b>${total}</b> rows</span>` +
+    `<span><b>${off}</b> Off (${sundays} Sundays)</span>` +
+    `<span><b>${skip}</b> Skip</span>` +
+    `<span><b>${filled}</b> filled</span>`;
 }
 
 function timeCell(r, timeKey, ampmKey, disabled) {
