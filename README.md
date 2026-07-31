@@ -8,7 +8,21 @@ then generate a script that auto-fills the whole month on the logbook site in on
 ## Requirements
 
 - Python 3.x (tkinter ships with it — no extra install needed to run the UI)
-- `openpyxl` — only needed for **Import Excel…**: `pip install openpyxl`
+- `openpyxl` — only needed for **Import Excel…**: `pip install -r requirements.txt`
+
+**No GUI window / blank screen?** Check tkinter present: `python3 -c "import tkinter"`.
+Error means Tk missing from your Python build, not app bug. Fix per OS:
+- **macOS**: python.org/pyenv builds often lack Tcl/Tk. Use system Python3, or
+  `brew install python-tk` (or `brew install tcl-tk` then rebuild via pyenv).
+- **Linux**: `sudo apt install python3-tk` (Debian/Ubuntu) or `sudo dnf install python3-tkinter` (Fedora).
+- **Windows**: official python.org installer bundles Tk — reinstall from there if using
+  Microsoft Store Python.
+- **SSH/headless**: no `$DISPLAY` — GUI needs a real desktop session, not remote shell.
+
+**Still no luck?** Use the web fallback instead — no Python/Tk needed at all:
+open `web/logbook_editor.html` directly in your browser (double-click it, or
+`open web/logbook_editor.html`). Same features, including Excel import. Keep
+`web/vendor/xlsx.full.min.js` next to it.
 
 ## How to use it
 

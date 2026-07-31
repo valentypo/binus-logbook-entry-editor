@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Logbook Entry Editor (Web)</title>
+<script src="vendor/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; margin: 0; padding: 12px; background: #f5f5f5; color: #111; }
+  h1 { font-size: 18px; margin: 0 0 10px; }
+  fieldset { border: 1px solid #ccc; border-radius: 6px; margin-bottom: 10px; padding: 10px 12px; background: #fff; }
+  legend { font-size: 12px; font-weight: 600; color: #444; padding: 0 4px; }
+  label { font-size: 13px; margin-right: 4px; }
+  input, select, textarea, button { font-size: 13px; font-family: inherit; }
+  input[type=number] { width: 55px; }
+  input[type=text].time { width: 55px; }
+  select.ampm { width: 52px; }
+  .row-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .row-inline:last-child { margin-bottom: 0; }
+  button { padding: 4px 10px; border: 1px solid #999; border-radius: 4px; background: #fafafa; cursor: pointer; }
+  button:hover { background: #eee; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #tableWrap { overflow: auto; max-height: 65vh; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border-bottom: 1px solid #eee; padding: 4px 6px; text-align: left; font-size: 13px; vertical-align: top; }
+  th { position: sticky; top: 0; background: #f0f0f0; z-index: 1; }
+  tr.off td { background: #f7f7f7; color: #999; }
+  tr.sunday td { background: #fdeaea; }
+  textarea.cell { width: 100%; min-width: 160px; resize: vertical; height: 40px; }
+  textarea.cell:disabled { background: #f2f2f2; color: #999; }
+  .day-label { white-space: nowrap; font-weight: 600; }
+  #footer { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  #footer .spacer { flex: 1; }
+  #scriptOut { width: 100%; height: 160px; margin-top: 8px; font-family: monospace; font-size: 12px; display: none; }
+  .hint { font-size: 11px; color: #777; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Logbook Entry Editor (Web fallback — use if the Python/Tkinter UI won't render)</h1>
+
+<fieldset>
+  <legend>Row setup</legend>
+  <div class="row-inline">
+    <label>Days:</label>
+    <input type="number" id="daysInput" min="1" max="31" value="28">
+    <label>Start weekday:</label>
+    <select id="startWeekday">
+      <option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option>
+      <option>Fri</option><option>Sat</option><option>Sun</option>
+    </select>
+    <button id="rebuildBtn">Rebuild rows</button>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Set all time</legend>
+  <div class="row-inline">
+    <label>In:</label>
+    <input type="text" class="time" id="bulkInTime" value="09:00">
+    <select class="ampm" id="bulkInAmpm"><option>am</option><option>pm</option></select>
+    <label>Out:</label>
+    <input type="text" class="time" id="bulkOutTime" value="05:00">
+    <select class="ampm" id="bulkOutAmpm"><option selected>pm</option><option>am</option></select>
+    <button id="applyTimeBtn">Apply times to all</button>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Set all text</legend>
+  <div class="row-inline">
+    <label>Activity:</label>
+    <input type="text" id="bulkActivity" style="width:220px">
+    <label>Description:</label>
+    <input type="text" id="bulkDescription" style="width:260px">
+    <button id="applyTextBtn">Apply text to all</button>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Add subheader</legend>
+  <div class="row-inline">
+    <label>Subheader:</label>
+    <input type="text" id="subheaderText" style="width:200px" placeholder="(Project Name)">
+    <label>From day:</label>
+    <input type="number" id="subheaderFrom" min="1" value="1">
+    <label>To day:</label>
+    <input type="number" id="subheaderTo" min="1" value="1">
+    <button id="applySubheaderBtn">Apply subheader</button>
+  </div>
+  <div class="hint">Prepends "&lt;subheader&gt; " to Activity for non-Off/non-Skip rows in that day range. No dedup — re-applying stacks.</div>
+</fieldset>
+
+<div id="tableWrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Day</th><th>Off</th><th>Skip</th><th>Clock In</th><th>Clock Out</th>
+        <th>Activity</th><th>Description</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div id="footer">
+  <input type="file" id="loadJsonInput" accept=".json" style="display:none">
+  <button id="loadJsonBtn">Load JSON…</button>
+  <button id="saveJsonBtn">Save JSON…</button>
+  <input type="file" id="importExcelInput" accept=".xlsx" style="display:none">
+  <button id="importExcelBtn">Import Excel…</button>
+  <button id="resetAllBtn">Reset All</button>
+  <span class="spacer"></span>
+  <button id="generateBtn">Generate script.js + copy</button>
+</div>
+
+<textarea id="scriptOut" readonly></textarea>
+
+<script>
+const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const AMPM = ["am","pm"];
+const DEFAULT_IN_TIME = "09:00", DEFAULT_OUT_TIME = "05:00";
+const DEFAULT_IN_AMPM = "am", DEFAULT_OUT_AMPM = "pm";
+
+// Company timesheet layout: data rows start at row 14 (1-indexed), with
+// NO/DAY/DATE/TASK/PROJECT NAME/DETAIL/S-O NO/IN/OUT/TOTAL in columns A-J.
+const TIMESHEET_DATA_START_ROW = 14;
+const COL_NO = 1, COL_DAY = 2, COL_TASK = 4, COL_DETAIL = 6, COL_IN = 8, COL_OUT = 9;
+
+let rows = []; // {weekday, off, skip, inTime, inAmpm, outTime, outAmpm, activity, description, locked}
+
+function joinTime(t, ampm) { return `${t.trim()} ${ampm}`; }
+function splitTime(value) {
+  const parts = value.trim().split(" ");
+  const last = parts[parts.length - 1].toLowerCase();
+  if (parts.length >= 2 && AMPM.includes(last)) {
+    return [parts.slice(0, -1).join(" "), last];
+  }
+  return [value.trim(), DEFAULT_IN_AMPM];
+}
+
+function newRow(weekday) {
+  return {
+    weekday, off: false, skip: false,
+    inTime: DEFAULT_IN_TIME, inAmpm: DEFAULT_IN_AMPM,
+    outTime: DEFAULT_OUT_TIME, outAmpm: DEFAULT_OUT_AMPM,
+    activity: "", description: "", locked: false,
+  };
+}
+
+function rebuildRows() {
+  const n = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
+  const startIdx = WEEKDAYS.indexOf(document.getElementById("startWeekday").value);
+  const old = rows;
+  rows = [];
+  for (let i = 0; i < n; i++) {
+    const wd = WEEKDAYS[(startIdx + i) % 7];
+    const r = old[i] ? { ...old[i], weekday: wd } : newRow(wd);
+    r.weekday = wd;
+    rows.push(r);
+  }
+  lockSundays();
+  renderTable();
+}
+
+function lockSundays() {
+  for (const r of rows) {
+    if (r.weekday === "Sun") { r.off = true; r.skip = false; r.locked = true; }
+    else if (r.locked && r.weekday !== "Sun") { r.locked = false; }
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  rows.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    tr.className = (r.off ? "off " : "") + (r.weekday === "Sun" ? "sunday" : "");
+
+    const disabledAll = r.off || r.skip;
+
+    const tdDay = document.createElement("td");
+    tdDay.className = "day-label";
+    tdDay.textContent = `${i + 1} ${r.weekday}`;
+    tr.appendChild(tdDay);
+
+    const tdOff = document.createElement("td");
+    const offChk = document.createElement("input");
+    offChk.type = "checkbox"; offChk.checked = r.off; offChk.disabled = r.locked || r.skip;
+    offChk.onchange = () => { r.off = offChk.checked; renderTable(); };
+    tdOff.appendChild(offChk);
+    tr.appendChild(tdOff);
+
+    const tdSkip = document.createElement("td");
+    const skipChk = document.createElement("input");
+    skipChk.type = "checkbox"; skipChk.checked = r.skip; skipChk.disabled = r.locked;
+    skipChk.onchange = () => { r.skip = skipChk.checked; renderTable(); };
+    tdSkip.appendChild(skipChk);
+    tr.appendChild(tdSkip);
+
+    const tdIn = document.createElement("td");
+    tdIn.appendChild(timeCell(r, "inTime", "inAmpm", disabledAll));
+    tr.appendChild(tdIn);
+
+    const tdOut = document.createElement("td");
+    tdOut.appendChild(timeCell(r, "outTime", "outAmpm", disabledAll));
+    tr.appendChild(tdOut);
+
+    const tdAct = document.createElement("td");
+    tdAct.appendChild(textCell(r, "activity", disabledAll));
+    tr.appendChild(tdAct);
+
+    const tdDesc = document.createElement("td");
+    tdDesc.appendChild(textCell(r, "description", disabledAll));
+    tr.appendChild(tdDesc);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function timeCell(r, timeKey, ampmKey, disabled) {
+  const wrap = document.createElement("span");
+  const time = document.createElement("input");
+  time.type = "text"; time.className = "time"; time.value = r[timeKey]; time.disabled = disabled;
+  time.onchange = () => { r[timeKey] = time.value; };
+  const ampm = document.createElement("select");
+  ampm.className = "ampm"; ampm.disabled = disabled;
+  for (const v of AMPM) {
+    const opt = document.createElement("option"); opt.value = v; opt.textContent = v;
+    if (v === r[ampmKey]) opt.selected = true;
+    ampm.appendChild(opt);
+  }
+  ampm.onchange = () => { r[ampmKey] = ampm.value; };
+  wrap.appendChild(time); wrap.appendChild(ampm);
+  return wrap;
+}
+
+function textCell(r, key, disabled) {
+  const ta = document.createElement("textarea");
+  ta.className = "cell"; ta.value = r[key]; ta.disabled = disabled;
+  ta.onchange = () => { r[key] = ta.value; };
+  return ta;
+}
+
+function toEntry(r) {
+  if (r.skip) return { skip: true };
+  if (r.off) return null;
+  return {
+    editClockIn: joinTime(r.inTime, r.inAmpm),
+    editClockOut: joinTime(r.outTime, r.outAmpm),
+    editActivity: r.activity,
+    editDescription: r.description,
+  };
+}
+
+function loadEntry(r, entry) {
+  if (entry === null || entry === undefined) {
+    r.off = true; r.skip = false; return;
+  }
+  if (entry.skip) { r.off = false; r.skip = true; return; }
+  r.off = false; r.skip = false;
+  const [it, ia] = splitTime(entry.editClockIn || DEFAULT_IN_TIME);
+  const [ot, oa] = splitTime(entry.editClockOut || DEFAULT_OUT_TIME);
+  r.inTime = it; r.inAmpm = ia; r.outTime = ot; r.outAmpm = oa;
+  r.activity = entry.editActivity || "";
+  r.description = entry.editDescription || "";
+}
+
+// ---- bulk actions ----
+document.getElementById("rebuildBtn").onclick = rebuildRows;
+
+document.getElementById("applyTimeBtn").onclick = () => {
+  const inTime = document.getElementById("bulkInTime").value;
+  const inAmpm = document.getElementById("bulkInAmpm").value;
+  const outTime = document.getElementById("bulkOutTime").value;
+  const outAmpm = document.getElementById("bulkOutAmpm").value;
+  for (const r of rows) {
+    if (r.off || r.skip) continue;
+    r.inTime = inTime; r.inAmpm = inAmpm; r.outTime = outTime; r.outAmpm = outAmpm;
+  }
+  renderTable();
+};
+
+document.getElementById("applyTextBtn").onclick = () => {
+  const activity = document.getElementById("bulkActivity").value;
+  const description = document.getElementById("bulkDescription").value;
+  for (const r of rows) {
+    if (r.off || r.skip) continue;
+    r.activity = activity; r.description = description;
+  }
+  renderTable();
+};
+
+document.getElementById("applySubheaderBtn").onclick = () => {
+  const subheader = document.getElementById("subheaderText").value.trim();
+  if (!subheader) { alert("Enter a subheader first."); return; }
+  let from = parseInt(document.getElementById("subheaderFrom").value, 10) || 1;
+  let to = parseInt(document.getElementById("subheaderTo").value, 10) || 1;
+  if (from > to) [from, to] = [to, from];
+  rows.forEach((r, i) => {
+    const day = i + 1;
+    if (day < from || day > to) return;
+    if (r.off || r.skip) return;
+    r.activity = `${subheader} ${r.activity}`.replace(/\s+$/, "");
+  });
+  renderTable();
+};
+
+document.getElementById("resetAllBtn").onclick = () => {
+  if (!confirm("Reset every row's clock times and activity/description to defaults and clear all Off/Skip flags?\n\nThis cannot be undone.")) return;
+  for (const r of rows) {
+    r.off = false; r.skip = false;
+    r.inTime = DEFAULT_IN_TIME; r.inAmpm = DEFAULT_IN_AMPM;
+    r.outTime = DEFAULT_OUT_TIME; r.outAmpm = DEFAULT_OUT_AMPM;
+    r.activity = ""; r.description = "";
+  }
+  lockSundays();
+  renderTable();
+};
+
+// ---- JSON save/load ----
+document.getElementById("saveJsonBtn").onclick = () => {
+  const data = rows.map(toEntry);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "logbook_entries.json";
+  a.click();
+};
+
+document.getElementById("loadJsonBtn").onclick = () => document.getElementById("loadJsonInput").click();
+document.getElementById("loadJsonInput").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const data = JSON.parse(reader.result);
+    document.getElementById("daysInput").value = data.length;
+    rebuildRows();
+    data.forEach((entry, i) => { if (rows[i]) loadEntry(rows[i], entry); });
+    lockSundays();
+    renderTable();
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+};
+
+// ---- Excel import ----
+function isZeroTimeCell(cell) {
+  if (!cell) return true;
+  const text = (cell.w !== undefined ? String(cell.w) : String(cell.v ?? "")).trim();
+  if (text === "") return true;
+  if (["0", "0:00", "00:00", "0:00:00"].includes(text)) return true;
+  if (cell.t === "n" && Math.abs(cell.v) < 1e-9) return true;
+  return false;
+}
+
+document.getElementById("importExcelBtn").onclick = () => document.getElementById("importExcelInput").click();
+document.getElementById("importExcelInput").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const entries = [];
+      let startWeekday = "";
+      let row = TIMESHEET_DATA_START_ROW;
+      while (true) {
+        const noCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_NO - 1 })];
+        const noVal = noCell ? String(noCell.v ?? "").trim() : "";
+        if (!noVal) break;
+
+        const dayCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_DAY - 1 })];
+        const dayVal = dayCell ? String(dayCell.v ?? "").trim() : "";
+        const weekday = dayVal ? dayVal.slice(0, 3).charAt(0).toUpperCase() + dayVal.slice(1, 3).toLowerCase() : "";
+        if (!startWeekday && WEEKDAYS.includes(weekday)) startWeekday = weekday;
+
+        const inCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_IN - 1 })];
+        const outCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_OUT - 1 })];
+        if (isZeroTimeCell(inCell) && isZeroTimeCell(outCell)) {
+          entries.push(null);
+        } else {
+          const taskCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_TASK - 1 })];
+          const detailCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_DETAIL - 1 })];
+          entries.push({
+            editClockIn: joinTime(DEFAULT_IN_TIME, DEFAULT_IN_AMPM),
+            editClockOut: joinTime(DEFAULT_OUT_TIME, DEFAULT_OUT_AMPM),
+            editActivity: taskCell ? String(taskCell.v ?? "").trim() : "",
+            editDescription: detailCell ? String(detailCell.v ?? "").trim() : "",
+          });
+        }
+        row++;
+      }
+      if (!entries.length) {
+        alert(`No data rows found starting at row ${TIMESHEET_DATA_START_ROW}.`);
+        return;
+      }
+      document.getElementById("daysInput").value = entries.length;
+      document.getElementById("startWeekday").value = startWeekday || "Mon";
+      rebuildRows();
+      entries.forEach((entry, i) => { if (rows[i]) loadEntry(rows[i], entry); });
+      lockSundays();
+      renderTable();
+      alert(`Imported ${entries.length} rows from ${file.name}.`);
+    } catch (err) {
+      alert("Import failed: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = "";
+};
+
+// ---- script generation ----
+function buildScript(entries) {
+  const entriesJson = JSON.stringify(entries, null, 4);
+  return `// =====================================================================
+// LOGBOOK AUTO-FILL — generated by logbook_editor.html (web fallback)
+// Paste this whole block into the browser console on the logbook page.
+//   object -> fill row | null -> OFF day
+// =====================================================================
+
+const entries = ${entriesJson};
+
+// =====================================================================
+// One combined array, in document order = day order. Blue (empty) and orange
+// (filled) day buttons both carry \`.detailsbtn\`, so this keeps index i aligned
+// to day i regardless of color. Clicking a button edits that day whether it was
+// blue or orange -> filling a filled day just overwrites it (auto-override).
+const buttons = Array.from(document.querySelectorAll('.detailsbtn'));
+
+buttons.forEach((b, i) => {
+    const entry = entries[i];
+
+    if (entry && entry.skip) return; // leave this day untouched
+
+    const editClockIn = document.getElementById('editClockIn');
+    const editClockOut = document.getElementById('editClockOut');
+    const editActivity = document.getElementById('editActivity');
+    const editDescription = document.getElementById('editDescription');
+    const submit = document.querySelector(
+        '.button.button-primary[onclick="editSaveClick()"]'
+    );
+    const off = document.querySelector(
+        '.button.button-primary[onclick="OffClick()"]'
+    );
+    b.click();
+
+    if (entry === null || entry === undefined) {
+        off.click();
+        submit.click();
+        return;
+    }
+
+    editClockIn.value = entry.editClockIn;
+    editClockOut.value = entry.editClockOut;
+    editActivity.value = entry.editActivity;
+    editDescription.value = entry.editDescription;
+    submit.click();
+});
+`;
+}
+
+document.getElementById("generateBtn").onclick = async () => {
+  const kept = rows.filter(r => r.weekday !== "Sun");
+  const skippedSundays = rows.length - kept.length;
+  const entries = kept.map(toEntry);
+  const script = buildScript(entries);
+
+  const out = document.getElementById("scriptOut");
+  out.value = script;
+  out.style.display = "block";
+
+  try {
+    await navigator.clipboard.writeText(script);
+  } catch {
+    out.select(); // clipboard API blocked (e.g. no HTTPS) -- fall back to manual copy
+  }
+
+  const blob = new Blob([script], { type: "text/javascript" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "script.generated.js";
+  a.click();
+
+  alert(`Generated script.generated.js and copied to clipboard (or select the text box below if copy was blocked).\n${entries.length} rows (${skippedSundays} Sundays excluded — no button on site).`);
+};
+
+rebuildRows();
+</script>
+</body>
+</html>
