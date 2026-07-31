@@ -20,8 +20,8 @@ Error means Tk missing from your Python build, not app bug. Fix per OS:
 - **SSH/headless**: no `$DISPLAY` — GUI needs a real desktop session, not remote shell.
 
 **Still no luck?** Use the web fallback instead — no Python/Tk needed at all:
-open `web/logbook_editor.html` directly in your browser (double-click it, or
-`open web/logbook_editor.html`). Same features, including Excel import. Keep
+open `web/index.html` directly in your browser (double-click it, or
+`open web/index.html`). Same features, including Excel import. Keep
 `web/vendor/xlsx.full.min.js` next to it.
 
 ## How to use it
