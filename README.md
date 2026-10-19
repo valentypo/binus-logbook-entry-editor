@@ -22,7 +22,12 @@ Error means Tk missing from your Python build, not app bug. Fix per OS:
 **Still no luck?** Use the web fallback instead — no Python/Tk needed at all:
 open `web/index.html` directly in your browser (double-click it, or
 `open web/index.html`). Same features, including Excel import. Keep
-`web/vendor/xlsx.full.min.js` next to it.
+`web/vendor/xlsx.full.min.js` next to it. The web version also autosaves your
+rows in the browser, so a reload picks up where you left off.
+
+**Test the script without touching the real logbook**: open
+`web/mock-logbook.html`, paste the generated script into its console, and
+check that each day fills (or goes Off / stays untouched) as expected.
 
 ## How to use it
 

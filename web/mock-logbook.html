@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock Logbook</title>
+<!--
+  Test double for the campus logbook page. NOT the real site.
+  Mimics only what the generated script touches:
+    - one `.detailsbtn` per non-Sunday day, in day order
+    - #editClockIn / #editClockOut / #editActivity / #editDescription
+    - `.button.button-primary[onclick="editSaveClick()"]` and `[onclick="OffClick()"]`
+  Open it, open the console, paste the script from index.html, and check the table.
+-->
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f5f7; --surface: #fff; --border: #dfe1e6; --text: #1d1f24; --dim: #6b7280;
+    --blue: #2f6fe4; --orange: #f08c2e; --off: #9aa1ab;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --bg: #15161a; --surface: #1e2025; --border: #33363d; --text: #eceef1; --dim: #9aa1ab; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 16px; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .page { max-width: 1000px; margin: 0 auto; }
+  .banner { padding: 10px 14px; border-radius: 10px; background: #fff3cd; color: #5c4400; border: 1px solid #f2d27a; margin-bottom: 16px; font-size: 13px; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  input, select, button { font: inherit; color: inherit; }
+  input, select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+  .wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  table { width: 100%; min-width: 760px; border-collapse: collapse; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+  .detailsbtn { border: 0; border-radius: 6px; padding: 5px 10px; color: #fff; background: var(--blue); cursor: pointer; }
+  .detailsbtn.filled { background: var(--orange); }
+  .status-off { color: var(--off); font-weight: 600; }
+  .status-filled { color: var(--orange); font-weight: 600; }
+  .sun td { color: var(--dim); }
+  #editor { margin-top: 16px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+  #editor label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--dim); }
+  .button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; }
+  .button-primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  #log { margin-top: 12px; font: 12px/1.5 ui-monospace, Menlo, monospace; color: var(--dim); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="banner"><b>Mock logbook — not the real site.</b> Paste the generated script into this page's console (F12) to check that every day fills correctly.</div>
+  <h1>Mock Logbook</h1>
+  <div class="controls">
+    <label>Days <input type="number" id="days" min="1" max="31" value="28" style="width:60px"></label>
+    <label>Starts on <select id="start"><option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option><option>Fri</option><option>Sat</option><option>Sun</option></select></label>
+    <button class="button" id="rebuild">Rebuild</button>
+  </div>
+
+  <div class="wrap">
+    <table>
+      <thead><tr><th>Day</th><th>Button</th><th>Status</th><th>In</th><th>Out</th><th>Activity</th><th>Description</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="editor">
+    <label>Clock in <input id="editClockIn"></label>
+    <label>Clock out <input id="editClockOut"></label>
+    <label>Activity <input id="editActivity"></label>
+    <label>Description <input id="editDescription"></label>
+    <div style="display:flex;gap:6px">
+      <button class="button button-primary" onclick="OffClick()">Off</button>
+      <button class="button button-primary" onclick="editSaveClick()">Save</button>
+    </div>
+  </div>
+  <div id="log"></div>
+</div>
+
+<script>
+const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+let days = [];       // {weekday, status: "empty"|"filled"|"off", in, out, activity, description}
+let current = -1;    // index into days[] of the day being edited
+let offPending = false;
+
+function build() {
+  const n = Math.min(31, Math.max(1, parseInt(document.getElementById("days").value, 10) || 1));
+  const start = WEEKDAYS.indexOf(document.getElementById("start").value);
+  days = Array.from({ length: n }, (_, i) => ({
+    weekday: WEEKDAYS[(start + i) % 7], status: "empty", in: "", out: "", activity: "", description: "",
+  }));
+  current = -1;
+  document.getElementById("log").textContent = "";
+  render();
+}
+
+function render() {
+  const tbody = document.getElementById("tbody");
+  tbody.replaceChildren(...days.map((d, i) => {
+    const tr = document.createElement("tr");
+    const sunday = d.weekday === "Sun";
+    if (sunday) tr.className = "sun";
+    const cells = [`${i + 1} ${d.weekday}`, "", "", d.in, d.out, d.activity, d.description];
+    cells.forEach((text, c) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    });
+    // like the real site: Sundays get no button
+    if (!sunday) {
+      const b = document.createElement("button");
+      b.className = "detailsbtn" + (d.status === "empty" ? "" : " filled");
+      b.textContent = "Details";
+      b.onclick = () => openDay(i);
+      tr.children[1].appendChild(b);
+    }
+    const status = sunday ? "off (auto)" : d.status;
+    tr.children[2].textContent = status;
+    tr.children[2].className = d.status === "off" || sunday ? "status-off" : d.status === "filled" ? "status-filled" : "";
+    return tr;
+  }));
+}
+
+function openDay(i) {
+  current = i;
+  offPending = false;
+  const d = days[i];
+  document.getElementById("editClockIn").value = d.in;
+  document.getElementById("editClockOut").value = d.out;
+  document.getElementById("editActivity").value = d.activity;
+  document.getElementById("editDescription").value = d.description;
+}
+
+function OffClick() { offPending = true; }
+
+function editSaveClick() {
+  if (current < 0) return;
+  const d = days[current];
+  if (offPending) {
+    Object.assign(d, { status: "off", in: "", out: "", activity: "", description: "" });
+  } else {
+    Object.assign(d, {
+      status: "filled",
+      in: document.getElementById("editClockIn").value,
+      out: document.getElementById("editClockOut").value,
+      activity: document.getElementById("editActivity").value,
+      description: document.getElementById("editDescription").value,
+    });
+  }
+  document.getElementById("log").textContent += `saved day ${current + 1} (${d.weekday}) -> ${d.status}\n`;
+  render();
+}
+
+document.getElementById("rebuild").onclick = build;
+build();
+</script>
+</body>
+</html>

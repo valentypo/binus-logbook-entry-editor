@@ -2,243 +2,584 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>AFX Logbook Entry Editor</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%98%3C/text%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logbook Entry Editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236d5efc'/%3E%3Cstop offset='.55' stop-color='%23a855f7'/%3E%3Cstop offset='1' stop-color='%23ec4899'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M20 6 35 32H5Z' fill='url(%23g)' stroke='url(%23g)' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="vendor/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg: #f2f3f5;
+    color-scheme: light;
+    --bg: #f5f5fa;
     --surface: #ffffff;
-    --surface-2: #f7f8fa;
-    --border: #e0e2e7;
-    --text: #14161a;
-    --text-dim: #6b7280;
-    --accent: #4f46e5;
-    --accent-hover: #4338ca;
-    --accent-contrast: #ffffff;
-    --off-bg: #f3f4f6;
-    --sunday-bg: #fdecec;
-    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
-    --radius: 10px;
+    --surface-2: #f7f7fc;
+    --field: #fbfbfe;
+    --border: #e5e5f0;
+    --border-strong: #cfcfe0;
+    --text: #17172b;
+    --text-dim: #66667f;
+    --text-faint: #a3a3ba;
+    --accent: #6d5efc;
+    --accent-2: #a855f7;
+    --accent-3: #ec4899;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --slate: #8b93a7;
+    --on-amber: #3b2500;
+    --shadow-sm: 0 1px 2px rgba(23,23,60,.05), 0 1px 3px rgba(23,23,60,.06);
+    --shadow-lg: 0 12px 32px -8px rgba(23,23,60,.22), 0 2px 6px rgba(23,23,60,.06);
+    --glow-a: 18%;
+    --glow-b: 12%;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #17181c;
-      --surface: #1f2126;
-      --surface-2: #26282e;
-      --border: #34363c;
-      --text: #eef0f2;
-      --text-dim: #9aa1ab;
-      --accent: #7c7ff2;
-      --accent-hover: #8c8ff5;
-      --accent-contrast: #101114;
-      --off-bg: #26282e;
-      --sunday-bg: #3a2323;
-      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d0d17;
+      --surface: #161624;
+      --surface-2: #1c1c2d;
+      --field: #11111d;
+      --border: #282840;
+      --border-strong: #3a3a58;
+      --text: #ececf8;
+      --text-dim: #9b9bb8;
+      --text-faint: #5d5d7a;
+      --accent: #8b7dff;
+      --accent-2: #c084fc;
+      --accent-3: #f472b6;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --slate: #7c849a;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+      --shadow-lg: 0 16px 40px -8px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+      --glow-a: 22%;
+      --glow-b: 14%;
     }
   }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0d17;
+    --surface: #161624;
+    --surface-2: #1c1c2d;
+    --field: #11111d;
+    --border: #282840;
+    --border-strong: #3a3a58;
+    --text: #ececf8;
+    --text-dim: #9b9bb8;
+    --text-faint: #5d5d7a;
+    --accent: #8b7dff;
+    --accent-2: #c084fc;
+    --accent-3: #f472b6;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --rose: #fb7185;
+    --slate: #7c849a;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-lg: 0 16px 40px -8px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+    --glow-a: 22%;
+    --glow-b: 14%;
+  }
+  :root {
+    --grad: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 55%, var(--accent-3) 100%);
+    --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+    --amber-soft: color-mix(in srgb, var(--amber) 11%, transparent);
+    --rose-soft: color-mix(in srgb, var(--rose) 10%, transparent);
+    --slate-soft: color-mix(in srgb, var(--slate) 10%, transparent);
+    --radius: 16px;
+  }
+
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, "Segoe UI", Inter, Arial, sans-serif;
-    margin: 0; padding: 20px; background: var(--bg); color: var(--text);
-    line-height: 1.4;
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased;
   }
-  .page { max-width: 1200px; margin: 0 auto; }
-  header.app-header {
-    margin-bottom: 18px; display: flex; align-items: center; gap: 12px;
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(900px 420px at 0% -8%, color-mix(in srgb, var(--accent) var(--glow-a), transparent), transparent 70%),
+      radial-gradient(700px 380px at 100% -4%, color-mix(in srgb, var(--accent-3) var(--glow-b), transparent), transparent 70%);
   }
-  .logo-badge {
-    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    color: #fff; display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 13px; letter-spacing: -0.02em;
-    box-shadow: var(--shadow);
-  }
-  header.app-header h1 { font-size: 20px; font-weight: 700; margin: 0 0 2px; letter-spacing: -0.01em; }
-  header.app-header p { font-size: 13px; color: var(--text-dim); margin: 0; }
+  .page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 150px; }
+  button, input, textarea { font: inherit; color: inherit; }
+  svg { flex-shrink: 0; }
 
-  fieldset {
-    border: 1px solid var(--border); border-radius: var(--radius);
-    margin-bottom: 12px; padding: 12px 14px; background: var(--surface);
-    box-shadow: var(--shadow);
-  }
-  legend {
-    font-size: 11px; font-weight: 700; color: var(--text-dim);
-    padding: 0 6px; text-transform: uppercase; letter-spacing: .04em;
-  }
-  label { font-size: 13px; margin-right: 2px; color: var(--text-dim); }
-  input, select, textarea, button { font-size: 13px; font-family: inherit; color: var(--text); }
-  input, select, textarea {
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 6px; padding: 5px 8px;
-  }
-  input:focus, select:focus, textarea:focus {
-    outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
-  }
-  input[type=number] { width: 60px; }
-  input[type=text].time { width: 58px; text-align: center; }
-  select.ampm { width: 56px; }
-  .row-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-  .row-inline:last-child { margin-bottom: 0; }
+  /* ---- header ---- */
+  .app-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .logo { width: 44px; height: 44px; filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--accent-2) 45%, transparent)); }
+  .app-header h1 { font-size: 22px; font-weight: 800; letter-spacing: -.025em; margin: 0; }
+  .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .app-header p { margin: 2px 0 0; font-size: 13px; color: var(--text-dim); }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
 
-  button {
-    padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
-    background: var(--surface-2); cursor: pointer; font-weight: 600;
-    transition: background .12s, border-color .12s, transform .04s;
-  }
-  button:hover { background: var(--off-bg); border-color: var(--text-dim); }
-  button:active { transform: translateY(1px); }
-  button:disabled { opacity: 0.5; cursor: default; transform: none; }
-  button.primary {
-    background: var(--accent); border-color: var(--accent); color: var(--accent-contrast);
-  }
-  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-  button svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
+  /* ---- cards & controls ---- */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-dim); }
 
-  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
-  input[type=checkbox]:disabled { cursor: default; }
-
-  #tableWrap {
-    overflow: auto; max-height: 65vh; border: 1px solid var(--border);
-    border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+  input[type=text], input[type=number], textarea {
+    background: var(--field); border: 1px solid var(--border); border-radius: 9px;
+    padding: 7px 10px; outline: none; transition: border-color .15s, box-shadow .15s, background .15s;
   }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; font-size: 13px; vertical-align: top; }
+  input[type=text]:hover, input[type=number]:hover, textarea:hover { border-color: var(--border-strong); }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input:disabled, textarea:disabled {
+    background: transparent; border-style: dashed; color: var(--text-faint); cursor: not-allowed;
+  }
+  ::placeholder { color: var(--text-faint); }
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+    font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: transform .08s, background .15s, border-color .15s, box-shadow .2s, color .15s, background-position .4s;
+  }
+  .btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible, .chip:focus-visible, .ampm:focus-visible, .seg button:focus-visible, .collapse-head:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .btn svg { width: 15px; height: 15px; }
+  .btn.danger:hover { color: var(--rose); border-color: color-mix(in srgb, var(--rose) 45%, transparent); background: var(--rose-soft); }
+  .btn.primary {
+    border: 0; color: #fff; padding: 10px 18px; font-size: 14px;
+    background: var(--grad); background-size: 170% 100%; background-position: 0 0;
+    box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--accent-2) 75%, transparent);
+  }
+  .btn.primary:hover { background-position: 100% 0; box-shadow: 0 10px 28px -8px color-mix(in srgb, var(--accent-3) 80%, transparent); }
+  .btn.icon { padding: 8px; }
+  .kbd { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,.2); }
+
+  /* ---- setup + stats ---- */
+  .top-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 14px; margin-bottom: 14px; }
+  .setup { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .setup-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .setup-row .label { font-size: 13px; color: var(--text-dim); font-weight: 500; min-width: 92px; }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--field); overflow: hidden; }
+  .stepper button { border: 0; background: transparent; width: 32px; height: 34px; cursor: pointer; color: var(--text-dim); display: grid; place-items: center; }
+  .stepper button:hover { background: var(--accent-soft); color: var(--accent); }
+  .stepper button svg { width: 14px; height: 14px; }
+  .stepper input { width: 44px; border: 0; border-radius: 0; background: transparent; text-align: center; font-weight: 700; padding: 6px 0; }
+  .stepper input:focus { box-shadow: none; }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 3px; padding: 3px; background: var(--field); border: 1px solid var(--border); border-radius: 11px; }
+  .seg button {
+    border: 0; background: transparent; padding: 5px 9px; border-radius: 8px; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: var(--text-dim); transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm), 0 0 0 1px var(--border); }
+  .seg button[data-wd="Sun"] { color: color-mix(in srgb, var(--rose) 80%, var(--text-dim)); }
+
+  .stats { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr; }
+  .stat { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat .eyebrow { display: flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent); }
+  .stat-value { font-size: 26px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat-value small { font-size: 14px; font-weight: 600; color: var(--text-dim); letter-spacing: 0; }
+  .stat-sub { font-size: 12px; color: var(--text-dim); }
+  .bar { height: 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; margin-top: 2px; }
+  .bar span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--grad); transition: width .45s cubic-bezier(.2,.8,.2,1); }
+  .stat.done .bar span { background: linear-gradient(90deg, var(--green), color-mix(in srgb, var(--green) 60%, var(--accent))); }
+  .stat.done #statPct { color: var(--green); font-weight: 700; }
+  .stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
+  /* ---- bulk tools ---- */
+  .bulk { margin-bottom: 14px; }
+  .collapse-head {
+    width: 100%; display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+    background: transparent; border: 0; cursor: pointer; text-align: left; border-radius: var(--radius);
+  }
+  .collapse-head .chev { width: 16px; height: 16px; color: var(--text-dim); transition: transform .25s; }
+  .bulk.collapsed .chev { transform: rotate(-90deg); }
+  .collapse-head strong { font-size: 14px; }
+  .collapse-head .hint { margin-left: auto; font-size: 12px; color: var(--text-dim); }
+  .collapse { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .28s ease; }
+  .bulk.collapsed .collapse { grid-template-rows: 0fr; }
+  .collapse > div { overflow: hidden; }
+  .tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.35fr); gap: 12px; padding: 0 16px 16px; }
+  .tool {
+    --c: var(--accent); position: relative; overflow: hidden;
+    border: 1px solid var(--border); border-radius: 13px; background: var(--surface-2);
+    padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .tool::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--c); }
+  .tool.t-text { --c: var(--accent-2); }
+  .tool.t-sub { --c: var(--accent-3); }
+  .tool-head { display: flex; align-items: center; gap: 10px; }
+  .tool-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); }
+  .tool-icon svg { width: 17px; height: 17px; }
+  .tool-head strong { display: block; font-size: 13.5px; }
+  .tool-head > div > span { display: block; font-size: 12px; color: var(--text-dim); }
+  .tool-body { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+  .tool-body label { font-size: 12.5px; color: var(--text-dim); font-weight: 500; }
+  .field-col { display: flex; flex-direction: column; gap: 4px; flex: 1 1 140px; min-width: 0; }
+  .field-col input { width: 100%; }
+  .tool-foot { margin-top: auto; display: flex; justify-content: flex-end; }
+  .tool-foot .btn:hover { border-color: color-mix(in srgb, var(--c) 55%, transparent); color: var(--c); background: color-mix(in srgb, var(--c) 8%, var(--surface)); }
+  .small-num { width: 54px; text-align: center; }
+
+  /* ---- time inputs ---- */
+  .time-cell { display: inline-flex; align-items: center; gap: 4px; }
+  input.time { width: 64px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ampm {
+    min-width: 40px; padding: 7px 8px; border-radius: 9px; cursor: pointer;
+    font-size: 12px; font-weight: 700; border: 1px solid transparent;
+    background: var(--accent-soft); color: var(--accent); transition: background .15s, color .15s, transform .08s;
+  }
+  .ampm[data-v="pm"] { background: color-mix(in srgb, var(--accent-3) 13%, transparent); color: var(--accent-3); }
+  .ampm:active { transform: scale(.94); }
+  .ampm:disabled { background: transparent; color: var(--text-faint); border: 1px dashed var(--border); cursor: not-allowed; }
+
+  /* ---- table ---- */
+  .table-card { overflow: hidden; }
+  .table-scroll { overflow: auto; max-height: 68vh; }
+  table { width: 100%; min-width: 940px; border-collapse: separate; border-spacing: 0; }
   th {
-    position: sticky; top: 0; background: var(--surface-2); z-index: 1;
-    font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim);
+    position: sticky; top: 0; z-index: 2; background: var(--surface-2); text-align: left;
+    padding: 11px 12px; border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-dim);
   }
-  tbody tr:not(.off):not(.sunday):nth-child(even) td { background: var(--surface-2); }
-  tbody tr:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
-  tr.off td { background: var(--off-bg); color: var(--text-dim); }
-  tr.off:hover td { background: var(--off-bg); }
-  tr.sunday td { background: var(--sunday-bg); }
-  textarea.cell { width: 100%; min-width: 160px; resize: vertical; height: 40px; }
-  textarea.cell:disabled { background: var(--off-bg); color: var(--text-dim); }
-  .day-label { white-space: nowrap; font-weight: 700; color: var(--text); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background .15s; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  tbody td:first-child { box-shadow: inset 3px 0 0 var(--edge, transparent); transition: box-shadow .2s; }
+  tr.filled { --edge: var(--green); }
+  tr.off { --edge: var(--slate); background: var(--slate-soft); }
+  tr.skip { --edge: var(--amber); background: var(--amber-soft); }
+  tr.sunday { --edge: var(--rose); background: var(--rose-soft); }
+  tr.off:hover, tr.skip:hover, tr.sunday:hover { filter: brightness(.99); }
+  tr.enter { animation: rowIn .35s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 14ms); }
+  @keyframes rowIn { from { opacity: 0; transform: translateY(6px); } }
 
-  #footerWrap {
-    position: sticky; bottom: 0; background: var(--bg); margin-top: 14px; padding: 10px 0 4px;
+  .col-day { width: 120px; } .col-chip { width: 72px; } .col-time { width: 148px; }
+  .day { display: flex; align-items: center; gap: 10px; }
+  .day-num {
+    width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+    font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums;
+    background: var(--surface-2); border: 1px solid var(--border); transition: background .25s, color .25s, border-color .25s;
   }
-  #footer { display: flex; gap: 8px; flex-wrap: wrap; }
-  #footer .spacer { flex: 1; }
-  #scriptOut {
-    width: 100%; height: 180px; margin-top: 10px; font-family: "SF Mono", Menlo, monospace;
-    font-size: 12px; display: none; border-radius: var(--radius); padding: 10px;
+  .day-wd { display: block; font-size: 13px; font-weight: 700; }
+  .day-note { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  tr.sat .day-wd { color: var(--accent-2); }
+  tr.filled .day-num { background: var(--grad); color: #fff; border-color: transparent; box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent-2) 70%, transparent); }
+  tr.off .day-num, tr.off .day-note { color: var(--slate); }
+  tr.skip .day-num { background: var(--amber-soft); color: var(--amber); border-color: color-mix(in srgb, var(--amber) 35%, transparent); }
+  tr.skip .day-note { color: var(--amber); }
+  tr.sunday .day-num { background: var(--rose-soft); color: var(--rose); border-color: color-mix(in srgb, var(--rose) 35%, transparent); }
+  tr.sunday .day-wd, tr.sunday .day-note { color: var(--rose); }
+
+  .chip {
+    padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-dim);
+    transition: background .15s, color .15s, border-color .15s, transform .08s;
   }
-  .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
-  #statusBar {
-    display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-dim);
-    margin: 0 2px 6px;
+  .chip:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text); }
+  .chip:active:not(:disabled) { transform: scale(.94); }
+  .chip:disabled { opacity: .45; cursor: not-allowed; }
+  .chip-off[aria-pressed="true"] { background: var(--slate); border-color: var(--slate); color: #fff; }
+  .chip-skip[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--on-amber); }
+
+  textarea.cell {
+    display: block; width: 100%; min-width: 170px; min-height: 38px; max-height: 160px;
+    resize: vertical; line-height: 1.4; field-sizing: content;
   }
-  #statusBar b { color: var(--text); font-weight: 700; }
+
+  /* ---- action bar ---- */
+  .actionbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 12px 16px;
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border-top: 1px solid var(--border);
+  }
+  .actionbar-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .actionbar .spacer { flex: 1; }
+  #saveState { font-size: 12px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; }
+  #saveState::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); opacity: .9; }
+  #saveState:empty { display: none; }
+
+  /* ---- toasts ---- */
+  #toasts { position: fixed; right: 16px; bottom: 84px; z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: calc(100vw - 32px); pointer-events: none; }
+  .toast {
+    --c: var(--green); display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 13px; box-shadow: var(--shadow-lg);
+    font-size: 13px; font-weight: 550; animation: toastIn .3s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .toast.info { --c: var(--accent); } .toast.warn { --c: var(--amber); } .toast.error { --c: var(--rose); }
+  .toast .ticon { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--c); }
+  .toast .ticon svg { width: 14px; height: 14px; }
+  .toast.out { animation: toastOut .22s ease forwards; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(16px); } }
+
+  /* ---- dialogs ---- */
+  dialog {
+    width: min(640px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--border); border-radius: 20px;
+    background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg);
+  }
+  dialog[open] { animation: dlgIn .25s cubic-bezier(.2,.9,.3,1.1); }
+  dialog::backdrop { background: rgba(8,8,24,.45); backdrop-filter: blur(4px); }
+  @keyframes dlgIn { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+  .dlg-body { padding: 22px 22px 18px; }
+  .dlg-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+  .dlg-badge { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: #fff; background: var(--c, var(--green)); box-shadow: 0 8px 20px -8px var(--c, var(--green)); }
+  .dlg-badge svg { width: 22px; height: 22px; }
+  .dlg-head h2 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+  .dlg-head p { margin: 3px 0 0; font-size: 13px; color: var(--text-dim); }
+  .steps { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; counter-reset: s; }
+  .steps li { display: flex; gap: 10px; align-items: center; font-size: 13px; counter-increment: s; }
+  .steps li::before {
+    content: counter(s); width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; background: var(--grad);
+  }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); }
+  pre.script {
+    margin: 0; max-height: 240px; overflow: auto; padding: 12px 14px; border-radius: 12px;
+    background: var(--field); border: 1px solid var(--border);
+    font: 12px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-dim);
+  }
+  .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border); background: var(--surface-2); flex-wrap: wrap; }
+
+  /* ---- responsive ---- */
+  @media (max-width: 1000px) {
+    .top-grid { grid-template-columns: 1fr; }
+    .tools { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .page { padding-top: 16px; padding-bottom: 150px; }
+    .app-header h1 { font-size: 19px; }
+    .app-header p { display: none; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(3) { border-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--border); }
+    .collapse-head .hint { display: none; }
+    .actionbar .spacer { display: none; }
+    .actionbar .btn.primary { width: 100%; justify-content: center; }
+    .actionbar .lbl { display: none; }
+    .actionbar .btn:not(.primary) { padding: 9px 11px; }
+    #saveState { margin-left: auto; }
+    #toasts { bottom: 130px; }
+    .kbd { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
 <div class="page">
 
 <header class="app-header">
-  <div class="logo-badge">AFX</div>
+  <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+    <defs>
+      <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#6d5efc"/><stop offset=".55" stop-color="#a855f7"/><stop offset="1" stop-color="#ec4899"/>
+      </linearGradient>
+    </defs>
+    <path d="M20 6 35 32H5Z" fill="url(#logoGrad)" stroke="url(#logoGrad)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M20 17.5 26 28H14Z" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="2.2" stroke-linejoin="round"/>
+  </svg>
   <div>
-    <h1>Logbook Entry Editor</h1>
-    <p>Fills interns' campus logbook fast. build entries here, generate an auto-fill script, paste into the logbook site's console.</p>
+    <h1>Logbook <span class="grad-text">Entry Editor</span></h1>
+    <p>Build the month here, generate the auto-fill script, paste it into the logbook console.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn icon" id="themeBtn" type="button" title="Theme"></button>
   </div>
 </header>
 
-<fieldset>
-  <legend>Row setup</legend>
-  <div class="row-inline">
-    <label>Days:</label>
-    <input type="number" id="daysInput" min="1" max="31" value="28">
-    <label>Start weekday:</label>
-    <select id="startWeekday">
-      <option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option>
-      <option>Fri</option><option>Sat</option><option>Sun</option>
-    </select>
-    <button id="rebuildBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Rebuild rows
-    </button>
-  </div>
-</fieldset>
+<div class="top-grid">
+  <section class="card setup" aria-label="Month setup">
+    <span class="eyebrow">Month setup</span>
+    <div class="setup-row">
+      <span class="label">Days</span>
+      <div class="stepper">
+        <button type="button" id="daysDec" aria-label="Fewer days"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+        <input type="number" id="daysInput" min="1" max="31" aria-label="Days">
+        <button type="button" id="daysInc" aria-label="More days"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
+    </div>
+    <div class="setup-row">
+      <span class="label">Starts on</span>
+      <div class="seg" id="weekdaySeg" role="group" aria-label="Start weekday"></div>
+    </div>
+  </section>
 
-<fieldset>
-  <legend>Set all time</legend>
-  <div class="row-inline">
-    <label>In:</label>
-    <input type="text" class="time" id="bulkInTime" value="08:00">
-    <select class="ampm" id="bulkInAmpm"><option>am</option><option>pm</option></select>
-    <label>Out:</label>
-    <input type="text" class="time" id="bulkOutTime" value="05:00">
-    <select class="ampm" id="bulkOutAmpm"><option selected>pm</option><option>am</option></select>
-    <button id="applyTimeBtn">Apply times to all</button>
-  </div>
-</fieldset>
-
-<fieldset>
-  <legend>Set all text</legend>
-  <div class="row-inline">
-    <label>Activity:</label>
-    <input type="text" id="bulkActivity" style="width:220px">
-    <label>Description:</label>
-    <input type="text" id="bulkDescription" style="width:260px">
-    <button id="applyTextBtn">Apply text to all</button>
-  </div>
-</fieldset>
-
-<fieldset>
-  <legend>Add subheader</legend>
-  <div class="row-inline">
-    <label>Subheader:</label>
-    <input type="text" id="subheaderText" style="width:200px" placeholder="(Project Name)">
-    <label>From day:</label>
-    <input type="number" id="subheaderFrom" min="1" value="1">
-    <label>To day:</label>
-    <input type="number" id="subheaderTo" min="1" value="1">
-    <button id="applySubheaderBtn">Apply subheader</button>
-  </div>
-  <div class="hint">Prepends "&lt;subheader&gt; " to Activity for non-Off/non-Skip rows in that day range. No dedup — re-applying stacks.</div>
-</fieldset>
-
-<div id="tableWrap">
-  <table>
-    <thead>
-      <tr>
-        <th>Day</th><th>Off</th><th>Skip</th><th>Clock In</th><th>Clock Out</th>
-        <th>Activity</th><th>Description</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
+  <section class="card stats" aria-label="Summary">
+    <div class="stat" id="fillStat">
+      <span class="eyebrow"><span class="dot" style="--c: var(--accent-2)"></span>Filled</span>
+      <div class="stat-row">
+        <span class="stat-value"><span id="statFilled">0</span> <small id="statFilledOf">/ 0</small></span>
+        <span class="stat-sub" id="statPct">0%</span>
+      </div>
+      <div class="bar"><span id="fillBar"></span></div>
+    </div>
+    <div class="stat">
+      <span class="eyebrow"><span class="dot" style="--c: var(--green)"></span>Working</span>
+      <span class="stat-value" id="statWorking">0</span>
+      <span class="stat-sub">days to fill</span>
+    </div>
+    <div class="stat">
+      <span class="eyebrow"><span class="dot" style="--c: var(--slate)"></span>Off</span>
+      <span class="stat-value" id="statOff">0</span>
+      <span class="stat-sub" id="statOffSub">0 Sundays</span>
+    </div>
+    <div class="stat">
+      <span class="eyebrow"><span class="dot" style="--c: var(--amber)"></span>Skip</span>
+      <span class="stat-value" id="statSkip">0</span>
+      <span class="stat-sub">left untouched</span>
+    </div>
+  </section>
 </div>
 
-<div id="footerWrap">
-  <div id="statusBar"></div>
-  <div id="footer">
-    <input type="file" id="loadJsonInput" accept=".json" style="display:none">
-    <button id="loadJsonBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>Load JSON…
+<section class="card bulk" id="bulkCard">
+  <button type="button" class="collapse-head" id="bulkToggle" aria-expanded="true" aria-controls="bulkBody">
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    <strong>Bulk tools</strong>
+    <span class="hint">Applies to every row that isn't Off or Skip</span>
+  </button>
+  <div class="collapse" id="bulkBody"><div>
+    <div class="tools">
+      <div class="tool">
+        <div class="tool-head">
+          <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div><strong>Set all times</strong><span>Same clock in/out every day</span></div>
+        </div>
+        <div class="tool-body">
+          <div class="field-col" style="flex: 0 0 auto"><label for="bulkInTime">Clock in</label>
+            <span class="time-cell"><input type="text" class="time" id="bulkInTime" value="08:00"><button type="button" class="ampm" id="bulkInAmpm" data-v="am">am</button></span>
+          </div>
+          <div class="field-col" style="flex: 0 0 auto"><label for="bulkOutTime">Clock out</label>
+            <span class="time-cell"><input type="text" class="time" id="bulkOutTime" value="05:00"><button type="button" class="ampm" id="bulkOutAmpm" data-v="pm">pm</button></span>
+          </div>
+        </div>
+        <div class="tool-foot"><button type="button" class="btn" id="applyTimeBtn">Apply times</button></div>
+      </div>
+
+      <div class="tool t-text">
+        <div class="tool-head">
+          <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+          <div><strong>Set all text</strong><span>Overwrites Activity and Description</span></div>
+        </div>
+        <div class="tool-body">
+          <div class="field-col"><label for="bulkActivity">Activity</label><input type="text" id="bulkActivity" placeholder="e.g. Backend development"></div>
+          <div class="field-col"><label for="bulkDescription">Description</label><input type="text" id="bulkDescription" placeholder="e.g. Built and tested API endpoints"></div>
+        </div>
+        <div class="tool-foot"><button type="button" class="btn" id="applyTextBtn">Apply text</button></div>
+      </div>
+
+      <div class="tool t-sub">
+        <div class="tool-head">
+          <span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>
+          <div><strong>Add subheader</strong><span>Prepends a tag to Activity. Re-applying stacks.</span></div>
+        </div>
+        <div class="tool-body">
+          <div class="field-col"><label for="subheaderText">Subheader</label><input type="text" id="subheaderText" placeholder="(Project Name)"></div>
+          <div class="field-col" style="flex: 0 0 auto"><label for="subheaderFrom">Days</label>
+            <span style="display:flex;align-items:center;gap:6px">
+              <input type="number" class="small-num" id="subheaderFrom" min="1" value="1" aria-label="From day">
+              <span style="color:var(--text-faint)">to</span>
+              <input type="number" class="small-num" id="subheaderTo" min="1" value="1" aria-label="To day">
+            </span>
+          </div>
+        </div>
+        <div class="tool-foot"><button type="button" class="btn" id="applySubheaderBtn">Apply subheader</button></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="card table-card">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-day">Day</th><th class="col-chip">Off</th><th class="col-chip">Skip</th>
+          <th class="col-time">Clock in</th><th class="col-time">Clock out</th>
+          <th>Activity</th><th>Description</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<div class="actionbar">
+  <div class="actionbar-inner">
+    <input type="file" id="loadJsonInput" accept=".json" hidden>
+    <input type="file" id="importExcelInput" accept=".xlsx" hidden>
+    <button type="button" class="btn" id="importExcelBtn" title="Import Excel" aria-label="Import Excel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg><span class="lbl">Import Excel…</span>
     </button>
-    <button id="saveJsonBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>Save JSON…
+    <button type="button" class="btn" id="loadJsonBtn" title="Load JSON" aria-label="Load JSON">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M16 6l-4-4-4 4M12 2v13"/></svg><span class="lbl">Load JSON…</span>
     </button>
-    <input type="file" id="importExcelInput" accept=".xlsx" style="display:none">
-    <button id="importExcelBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Import (AFX TS) Excel…
+    <button type="button" class="btn" id="saveJsonBtn" title="Save JSON" aria-label="Save JSON">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span class="lbl">Save JSON…</span>
     </button>
-    <button id="resetAllBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Reset All
+    <button type="button" class="btn danger" id="resetAllBtn" title="Reset all" aria-label="Reset all">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg><span class="lbl">Reset all</span>
     </button>
     <span class="spacer"></span>
-    <button id="generateBtn" class="primary">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Generate script.js + copy
+    <span id="saveState"></span>
+    <button type="button" class="btn primary" id="generateBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>Generate script
+      <span class="kbd" id="kbdHint"></span>
     </button>
   </div>
 </div>
 
-<textarea id="scriptOut" readonly></textarea>
+<div id="toasts" aria-live="polite"></div>
 
-</div>
+<dialog id="scriptDialog">
+  <div class="dlg-body">
+    <div class="dlg-head">
+      <span class="dlg-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div>
+        <h2>Script ready</h2>
+        <p id="scriptSummary"></p>
+      </div>
+    </div>
+    <ol class="steps">
+      <li>Open the logbook page in your browser.</li>
+      <li>Open DevTools console (<code>F12</code>). Type <code>allow pasting</code> if it asks.</li>
+      <li>Paste the script and hit <code>Enter</code>.</li>
+    </ol>
+    <pre class="script" id="scriptOut"></pre>
+  </div>
+  <form method="dialog" class="dlg-foot">
+    <button type="button" class="btn" id="downloadScriptBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download .js
+    </button>
+    <button type="button" class="btn" id="copyScriptBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy again
+    </button>
+    <button class="btn primary" value="close">Done</button>
+  </form>
+</dialog>
+
+<dialog id="confirmDialog">
+  <div class="dlg-body">
+    <div class="dlg-head">
+      <span class="dlg-badge" style="--c: var(--rose)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+      <div>
+        <h2 id="confirmTitle"></h2>
+        <p id="confirmMsg"></p>
+      </div>
+    </div>
+  </div>
+  <form method="dialog" class="dlg-foot">
+    <button class="btn" value="cancel">Cancel</button>
+    <button class="btn danger" value="ok" id="confirmOk" style="color: var(--rose)"></button>
+  </form>
+</dialog>
 
 <script>
 const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -251,6 +592,16 @@ const DEFAULT_IN_AMPM = "am", DEFAULT_OUT_AMPM = "pm";
 const TIMESHEET_DATA_START_ROW = 14;
 const COL_NO = 1, COL_DAY = 2, COL_TASK = 4, COL_DETAIL = 6, COL_IN = 8, COL_OUT = 9;
 
+const STORE_KEY = "logbook-editor:v1";
+const THEME_KEY = "logbook-editor:theme";
+
+const $ = (id) => document.getElementById(id);
+
+let days = 28;
+let startWeekday = "Mon";
+// allRows only grows: shrinking Days then growing it again brings rows back
+// instead of losing what was typed. `rows` is the visible first `days` of it.
+let allRows = [];
 let rows = []; // {weekday, off, skip, inTime, inAmpm, outTime, outAmpm, activity, description, locked}
 
 function joinTime(t, ampm) { return `${t.trim()} ${ampm}`; }
@@ -262,6 +613,7 @@ function splitTime(value) {
   }
   return [value.trim(), DEFAULT_IN_AMPM];
 }
+function clampDays(n) { return Math.min(31, Math.max(1, parseInt(n, 10) || 1)); }
 
 function newRow(weekday) {
   return {
@@ -272,114 +624,230 @@ function newRow(weekday) {
   };
 }
 
-function rebuildRows() {
-  const n = Math.max(1, parseInt(document.getElementById("daysInput").value, 10) || 1);
-  const startIdx = WEEKDAYS.indexOf(document.getElementById("startWeekday").value);
-  const old = rows;
-  rows = [];
-  for (let i = 0; i < n; i++) {
-    const wd = WEEKDAYS[(startIdx + i) % 7];
-    const r = old[i] ? { ...old[i], weekday: wd } : newRow(wd);
-    r.weekday = wd;
-    rows.push(r);
+function rebuildRows({ animate = true } = {}) {
+  const startIdx = WEEKDAYS.indexOf(startWeekday);
+  for (let i = 0; i < days; i++) {
+    if (!allRows[i]) allRows[i] = newRow("");
+    allRows[i].weekday = WEEKDAYS[(startIdx + i) % 7];
   }
+  rows = allRows.slice(0, days);
   lockSundays();
-  renderTable();
+  renderSetup();
+  renderTable(animate);
+  scheduleSave();
 }
 
 function lockSundays() {
   for (const r of rows) {
     if (r.weekday === "Sun") { r.off = true; r.skip = false; r.locked = true; }
-    else if (r.locked && r.weekday !== "Sun") { r.locked = false; }
+    else if (r.locked) { r.locked = false; r.off = false; } // was a Sunday before the weekday changed
   }
 }
 
-function renderTable() {
-  const tbody = document.getElementById("tbody");
-  tbody.innerHTML = "";
-  rows.forEach((r, i) => {
-    const tr = document.createElement("tr");
-    tr.className = (r.off ? "off " : "") + (r.weekday === "Sun" ? "sunday" : "");
+const isEditable = (r) => !r.off && !r.skip;
+const isFilled = (r) => isEditable(r) && r.activity.trim() !== "";
 
-    const disabledAll = r.off || r.skip;
+// ---- rendering ----
+function renderSetup() {
+  $("daysInput").value = days;
+  for (const b of $("weekdaySeg").children) {
+    b.setAttribute("aria-pressed", String(b.dataset.wd === startWeekday));
+  }
+  $("subheaderFrom").max = days;
+  $("subheaderTo").max = days;
+}
 
-    const tdDay = document.createElement("td");
-    tdDay.className = "day-label";
-    tdDay.textContent = `${i + 1} ${r.weekday}`;
-    tr.appendChild(tdDay);
+function timeCellHtml(prefix, label) {
+  return `<span class="time-cell">` +
+    `<input type="text" class="time" data-k="${prefix}Time" maxlength="8" aria-label="${label}">` +
+    `<button type="button" class="ampm" data-k="${prefix}Ampm" aria-label="${label} am/pm"></button>` +
+    `</span>`;
+}
 
-    const tdOff = document.createElement("td");
-    const offChk = document.createElement("input");
-    offChk.type = "checkbox"; offChk.checked = r.off; offChk.disabled = r.locked || r.skip;
-    offChk.onchange = () => { r.off = offChk.checked; renderTable(); };
-    tdOff.appendChild(offChk);
-    tr.appendChild(tdOff);
+function buildRow(r, i) {
+  const tr = document.createElement("tr");
+  tr.dataset.i = i;
+  tr.className = [
+    r.weekday === "Sun" && "sunday", r.weekday === "Sat" && "sat",
+    r.skip && "skip", r.off && "off", isFilled(r) && "filled",
+  ].filter(Boolean).join(" ");
+  const note = r.weekday === "Sun" ? "auto-off" : r.skip ? "untouched" : r.off ? "day off" : "";
 
-    const tdSkip = document.createElement("td");
-    const skipChk = document.createElement("input");
-    skipChk.type = "checkbox"; skipChk.checked = r.skip; skipChk.disabled = r.locked;
-    skipChk.onchange = () => { r.skip = skipChk.checked; renderTable(); };
-    tdSkip.appendChild(skipChk);
-    tr.appendChild(tdSkip);
+  tr.innerHTML =
+    `<td><div class="day"><span class="day-num">${i + 1}</span>` +
+    `<span><span class="day-wd">${r.weekday}</span>${note ? `<span class="day-note">${note}</span>` : ""}</span></div></td>` +
+    `<td><button type="button" class="chip chip-off" data-k="off">Off</button></td>` +
+    `<td><button type="button" class="chip chip-skip" data-k="skip">Skip</button></td>` +
+    `<td>${timeCellHtml("in", "Clock in")}</td>` +
+    `<td>${timeCellHtml("out", "Clock out")}</td>` +
+    `<td><textarea class="cell" data-k="activity" rows="1" placeholder="What did you work on?" aria-label="Activity day ${i + 1}"></textarea></td>` +
+    `<td><textarea class="cell" data-k="description" rows="1" placeholder="Details, outcome…" aria-label="Description day ${i + 1}"></textarea></td>`;
 
-    const tdIn = document.createElement("td");
-    tdIn.appendChild(timeCell(r, "inTime", "inAmpm", disabledAll));
-    tr.appendChild(tdIn);
+  const q = (k) => tr.querySelector(`[data-k="${k}"]`);
+  const disabled = !isEditable(r);
 
-    const tdOut = document.createElement("td");
-    tdOut.appendChild(timeCell(r, "outTime", "outAmpm", disabledAll));
-    tr.appendChild(tdOut);
+  const off = q("off"), skip = q("skip");
+  off.setAttribute("aria-pressed", String(r.off));
+  skip.setAttribute("aria-pressed", String(r.skip));
+  off.disabled = r.locked || r.skip;
+  skip.disabled = r.locked;
 
-    const tdAct = document.createElement("td");
-    tdAct.appendChild(textCell(r, "activity", disabledAll));
-    tr.appendChild(tdAct);
+  for (const p of ["in", "out"]) {
+    const time = q(`${p}Time`), ampm = q(`${p}Ampm`);
+    time.value = r[`${p}Time`];
+    ampm.textContent = ampm.dataset.v = r[`${p}Ampm`];
+    time.disabled = ampm.disabled = disabled;
+  }
+  for (const k of ["activity", "description"]) {
+    q(k).value = r[k];
+    q(k).disabled = disabled;
+  }
+  return tr;
+}
 
-    const tdDesc = document.createElement("td");
-    tdDesc.appendChild(textCell(r, "description", disabledAll));
-    tr.appendChild(tdDesc);
-
-    tbody.appendChild(tr);
+function renderTable(animate = false) {
+  const trs = rows.map((r, i) => {
+    const tr = buildRow(r, i);
+    if (animate) { tr.classList.add("enter"); tr.style.setProperty("--i", i); }
+    return tr;
   });
-  updateStatusBar();
+  $("tbody").replaceChildren(...trs);
+  updateStats();
 }
 
-function updateStatusBar() {
-  const total = rows.length;
-  const sundays = rows.filter(r => r.weekday === "Sun").length;
-  const off = rows.filter(r => r.off).length;
-  const skip = rows.filter(r => r.skip).length;
-  const filled = rows.filter(r => !r.off && !r.skip && r.activity.trim()).length;
-  document.getElementById("statusBar").innerHTML =
-    `<span><b>${total}</b> rows</span>` +
-    `<span><b>${off}</b> Off (${sundays} Sundays)</span>` +
-    `<span><b>${skip}</b> Skip</span>` +
-    `<span><b>${filled}</b> filled</span>`;
+function replaceRow(i, focusKey) {
+  const tr = buildRow(rows[i], i);
+  $("tbody").children[i].replaceWith(tr);
+  if (focusKey) tr.querySelector(`[data-k="${focusKey}"]`)?.focus();
 }
 
-function timeCell(r, timeKey, ampmKey, disabled) {
-  const wrap = document.createElement("span");
-  const time = document.createElement("input");
-  time.type = "text"; time.className = "time"; time.value = r[timeKey]; time.disabled = disabled;
-  time.onchange = () => { r[timeKey] = time.value; };
-  const ampm = document.createElement("select");
-  ampm.className = "ampm"; ampm.disabled = disabled;
-  for (const v of AMPM) {
-    const opt = document.createElement("option"); opt.value = v; opt.textContent = v;
-    if (v === r[ampmKey]) opt.selected = true;
-    ampm.appendChild(opt);
+function updateStats() {
+  const working = rows.filter(isEditable);
+  const filled = working.filter((r) => r.activity.trim()).length;
+  const pct = working.length ? Math.round((filled / working.length) * 100) : 0;
+  const done = working.length > 0 && filled === working.length;
+  $("statFilled").textContent = filled;
+  $("statFilledOf").textContent = `/ ${working.length}`;
+  $("statPct").textContent = done ? "All filled" : `${pct}%`;
+  $("fillBar").style.width = `${pct}%`;
+  $("fillStat").classList.toggle("done", done);
+  $("statWorking").textContent = working.length;
+  $("statOff").textContent = rows.filter((r) => r.off).length;
+  const sundays = rows.filter((r) => r.weekday === "Sun").length;
+  $("statOffSub").textContent = `${sundays} Sunday${sundays === 1 ? "" : "s"} included`;
+  $("statSkip").textContent = rows.filter((r) => r.skip).length;
+}
+
+// ---- row interactions (delegated) ----
+$("tbody").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-k]");
+  if (!btn || btn.disabled) return;
+  const i = Number(btn.closest("tr").dataset.i);
+  const r = rows[i];
+  const k = btn.dataset.k;
+  if (k === "off" || k === "skip") {
+    r[k] = !r[k];
+    replaceRow(i, k);
+  } else {
+    r[k] = r[k] === "am" ? "pm" : "am";
+    btn.textContent = btn.dataset.v = r[k];
   }
-  ampm.onchange = () => { r[ampmKey] = ampm.value; };
-  wrap.appendChild(time); wrap.appendChild(ampm);
-  return wrap;
+  updateStats();
+  scheduleSave();
+});
+
+$("tbody").addEventListener("input", (e) => {
+  const el = e.target;
+  const k = el.dataset.k;
+  if (!k) return;
+  const tr = el.closest("tr");
+  const r = rows[Number(tr.dataset.i)];
+  r[k] = el.value;
+  if (k === "activity") tr.classList.toggle("filled", isFilled(r));
+  updateStats();
+  scheduleSave();
+});
+
+// ---- setup controls ----
+for (const wd of WEEKDAYS) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.wd = wd; b.textContent = wd;
+  b.onclick = () => { startWeekday = wd; rebuildRows({ animate: false }); };
+  $("weekdaySeg").appendChild(b);
+}
+$("daysInput").addEventListener("change", () => {
+  days = clampDays($("daysInput").value);
+  rebuildRows({ animate: false });
+});
+$("daysDec").onclick = () => { if (days > 1) { days--; rebuildRows({ animate: false }); } };
+$("daysInc").onclick = () => { if (days < 31) { days++; rebuildRows({ animate: false }); } };
+
+$("bulkToggle").onclick = () => {
+  const collapsed = $("bulkCard").classList.toggle("collapsed");
+  $("bulkToggle").setAttribute("aria-expanded", String(!collapsed));
+};
+for (const id of ["bulkInAmpm", "bulkOutAmpm"]) {
+  $(id).onclick = () => {
+    const b = $(id);
+    b.textContent = b.dataset.v = b.dataset.v === "am" ? "pm" : "am";
+  };
 }
 
-function textCell(r, key, disabled) {
-  const ta = document.createElement("textarea");
-  ta.className = "cell"; ta.value = r[key]; ta.disabled = disabled;
-  ta.onchange = () => { r[key] = ta.value; };
-  return ta;
-}
+// ---- bulk actions ----
+$("applyTimeBtn").onclick = () => {
+  const target = rows.filter(isEditable);
+  for (const r of target) {
+    r.inTime = $("bulkInTime").value; r.inAmpm = $("bulkInAmpm").dataset.v;
+    r.outTime = $("bulkOutTime").value; r.outAmpm = $("bulkOutAmpm").dataset.v;
+  }
+  renderTable();
+  scheduleSave();
+  toast(`Times applied to ${target.length} rows`);
+};
 
+$("applyTextBtn").onclick = () => {
+  const target = rows.filter(isEditable);
+  for (const r of target) {
+    r.activity = $("bulkActivity").value; r.description = $("bulkDescription").value;
+  }
+  renderTable();
+  scheduleSave();
+  toast(`Text applied to ${target.length} rows`);
+};
+
+$("applySubheaderBtn").onclick = () => {
+  const subheader = $("subheaderText").value.trim();
+  if (!subheader) { toast("Enter a subheader first", "warn"); $("subheaderText").focus(); return; }
+  let from = parseInt($("subheaderFrom").value, 10) || 1;
+  let to = parseInt($("subheaderTo").value, 10) || 1;
+  if (from > to) [from, to] = [to, from];
+  let count = 0;
+  rows.forEach((r, i) => {
+    const day = i + 1;
+    if (day < from || day > to || !isEditable(r)) return;
+    r.activity = `${subheader} ${r.activity}`.replace(/\s+$/, "");
+    count++;
+  });
+  renderTable();
+  scheduleSave();
+  toast(`Subheader added to ${count} rows (days ${from}–${to})`);
+};
+
+$("resetAllBtn").onclick = async () => {
+  const ok = await confirmAsk(
+    "Reset everything?",
+    "Every row's clock times and activity/description go back to defaults and all Off/Skip flags clear. This cannot be undone.",
+    "Reset all",
+  );
+  if (!ok) return;
+  for (const r of rows) Object.assign(r, newRow(r.weekday));
+  lockSundays();
+  renderTable(true);
+  scheduleSave();
+  toast("All rows reset", "info");
+};
+
+// ---- JSON save/load ----
 function toEntry(r) {
   if (r.skip) return { skip: true };
   if (r.off) return null;
@@ -404,80 +872,44 @@ function loadEntry(r, entry) {
   r.description = entry.editDescription || "";
 }
 
-// ---- bulk actions ----
-document.getElementById("rebuildBtn").onclick = rebuildRows;
-
-document.getElementById("applyTimeBtn").onclick = () => {
-  const inTime = document.getElementById("bulkInTime").value;
-  const inAmpm = document.getElementById("bulkInAmpm").value;
-  const outTime = document.getElementById("bulkOutTime").value;
-  const outAmpm = document.getElementById("bulkOutAmpm").value;
-  for (const r of rows) {
-    if (r.off || r.skip) continue;
-    r.inTime = inTime; r.inAmpm = inAmpm; r.outTime = outTime; r.outAmpm = outAmpm;
-  }
-  renderTable();
-};
-
-document.getElementById("applyTextBtn").onclick = () => {
-  const activity = document.getElementById("bulkActivity").value;
-  const description = document.getElementById("bulkDescription").value;
-  for (const r of rows) {
-    if (r.off || r.skip) continue;
-    r.activity = activity; r.description = description;
-  }
-  renderTable();
-};
-
-document.getElementById("applySubheaderBtn").onclick = () => {
-  const subheader = document.getElementById("subheaderText").value.trim();
-  if (!subheader) { alert("Enter a subheader first."); return; }
-  let from = parseInt(document.getElementById("subheaderFrom").value, 10) || 1;
-  let to = parseInt(document.getElementById("subheaderTo").value, 10) || 1;
-  if (from > to) [from, to] = [to, from];
-  rows.forEach((r, i) => {
-    const day = i + 1;
-    if (day < from || day > to) return;
-    if (r.off || r.skip) return;
-    r.activity = `${subheader} ${r.activity}`.replace(/\s+$/, "");
-  });
-  renderTable();
-};
-
-document.getElementById("resetAllBtn").onclick = () => {
-  if (!confirm("Reset every row's clock times and activity/description to defaults and clear all Off/Skip flags?\n\nThis cannot be undone.")) return;
-  for (const r of rows) {
-    r.off = false; r.skip = false;
-    r.inTime = DEFAULT_IN_TIME; r.inAmpm = DEFAULT_IN_AMPM;
-    r.outTime = DEFAULT_OUT_TIME; r.outAmpm = DEFAULT_OUT_AMPM;
-    r.activity = ""; r.description = "";
-  }
+function replaceAllEntries(entries, weekday) {
+  allRows = [];
+  days = clampDays(entries.length);
+  if (weekday) startWeekday = weekday;
+  rebuildRows();
+  entries.forEach((entry, i) => { if (rows[i]) loadEntry(rows[i], entry); });
   lockSundays();
-  renderTable();
-};
+  renderTable(true);
+  scheduleSave();
+}
 
-// ---- JSON save/load ----
-document.getElementById("saveJsonBtn").onclick = () => {
-  const data = rows.map(toEntry);
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+function download(name, text, type) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "logbook_entries.json";
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+$("saveJsonBtn").onclick = () => {
+  download("logbook_entries.json", JSON.stringify(rows.map(toEntry), null, 2), "application/json");
+  toast("Saved logbook_entries.json");
 };
 
-document.getElementById("loadJsonBtn").onclick = () => document.getElementById("loadJsonInput").click();
-document.getElementById("loadJsonInput").onchange = (e) => {
+$("loadJsonBtn").onclick = () => $("loadJsonInput").click();
+$("loadJsonInput").onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const data = JSON.parse(reader.result);
-    document.getElementById("daysInput").value = data.length;
-    rebuildRows();
-    data.forEach((entry, i) => { if (rows[i]) loadEntry(rows[i], entry); });
-    lockSundays();
-    renderTable();
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data)) throw new Error("expected a list of entries");
+      replaceAllEntries(data);
+      toast(`Loaded ${data.length} rows from ${file.name}`);
+    } catch (err) {
+      toast(`Couldn't load JSON: ${err.message}`, "error");
+    }
   };
   reader.readAsText(file);
   e.target.value = "";
@@ -493,8 +925,8 @@ function isZeroTimeCell(cell) {
   return false;
 }
 
-document.getElementById("importExcelBtn").onclick = () => document.getElementById("importExcelInput").click();
-document.getElementById("importExcelInput").onchange = (e) => {
+$("importExcelBtn").onclick = () => $("importExcelInput").click();
+$("importExcelInput").onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -502,26 +934,25 @@ document.getElementById("importExcelInput").onchange = (e) => {
     try {
       const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
+      const cellAt = (row, col) => ws[XLSX.utils.encode_cell({ r: row - 1, c: col - 1 })];
       const entries = [];
-      let startWeekday = "";
+      let startWd = "";
       let row = TIMESHEET_DATA_START_ROW;
       while (true) {
-        const noCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_NO - 1 })];
+        const noCell = cellAt(row, COL_NO);
         const noVal = noCell ? String(noCell.v ?? "").trim() : "";
         if (!noVal) break;
 
-        const dayCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_DAY - 1 })];
+        const dayCell = cellAt(row, COL_DAY);
         const dayVal = dayCell ? String(dayCell.v ?? "").trim() : "";
         const weekday = dayVal ? dayVal.slice(0, 3).charAt(0).toUpperCase() + dayVal.slice(1, 3).toLowerCase() : "";
-        if (!startWeekday && WEEKDAYS.includes(weekday)) startWeekday = weekday;
+        if (!startWd && WEEKDAYS.includes(weekday)) startWd = weekday;
 
-        const inCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_IN - 1 })];
-        const outCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_OUT - 1 })];
-        if (isZeroTimeCell(inCell) && isZeroTimeCell(outCell)) {
+        if (isZeroTimeCell(cellAt(row, COL_IN)) && isZeroTimeCell(cellAt(row, COL_OUT))) {
           entries.push(null);
         } else {
-          const taskCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_TASK - 1 })];
-          const detailCell = ws[XLSX.utils.encode_cell({ r: row - 1, c: COL_DETAIL - 1 })];
+          const taskCell = cellAt(row, COL_TASK);
+          const detailCell = cellAt(row, COL_DETAIL);
           entries.push({
             editClockIn: joinTime(DEFAULT_IN_TIME, DEFAULT_IN_AMPM),
             editClockOut: joinTime(DEFAULT_OUT_TIME, DEFAULT_OUT_AMPM),
@@ -532,18 +963,13 @@ document.getElementById("importExcelInput").onchange = (e) => {
         row++;
       }
       if (!entries.length) {
-        alert(`No data rows found starting at row ${TIMESHEET_DATA_START_ROW}.`);
+        toast(`No data rows found starting at row ${TIMESHEET_DATA_START_ROW}`, "warn");
         return;
       }
-      document.getElementById("daysInput").value = entries.length;
-      document.getElementById("startWeekday").value = startWeekday || "Mon";
-      rebuildRows();
-      entries.forEach((entry, i) => { if (rows[i]) loadEntry(rows[i], entry); });
-      lockSundays();
-      renderTable();
-      alert(`Imported ${entries.length} rows from ${file.name}.`);
+      replaceAllEntries(entries, startWd || "Mon");
+      toast(`Imported ${entries.length} rows from ${file.name}`);
     } catch (err) {
-      alert("Import failed: " + err.message);
+      toast(`Import failed: ${err.message}`, "error");
     }
   };
   reader.readAsArrayBuffer(file);
@@ -554,7 +980,7 @@ document.getElementById("importExcelInput").onchange = (e) => {
 function buildScript(entries) {
   const entriesJson = JSON.stringify(entries, null, 4);
   return `// =====================================================================
-// LOGBOOK AUTO-FILL — generated by logbook_editor.html (web fallback)
+// LOGBOOK AUTO-FILL — generated by web/index.html
 // Paste this whole block into the browser console on the logbook page.
 //   object -> fill row | null -> OFF day
 // =====================================================================
@@ -600,32 +1026,139 @@ buttons.forEach((b, i) => {
 `;
 }
 
-document.getElementById("generateBtn").onclick = async () => {
-  const kept = rows.filter(r => r.weekday !== "Sun");
+let lastScript = "";
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // clipboard API blocked (e.g. some browsers on file://) -- select for manual copy
+    const range = document.createRange();
+    range.selectNodeContents($("scriptOut"));
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return false;
+  }
+}
+
+async function generate() {
+  if ($("scriptDialog").open) return;
+  // Sundays have no button on the site (auto-OFF), so drop them here to keep
+  // entries[] aligned with the buttons the page actually renders.
+  const kept = rows.filter((r) => r.weekday !== "Sun");
   const skippedSundays = rows.length - kept.length;
   const entries = kept.map(toEntry);
-  const script = buildScript(entries);
+  lastScript = buildScript(entries);
 
-  const out = document.getElementById("scriptOut");
-  out.value = script;
-  out.style.display = "block";
+  $("scriptOut").textContent = lastScript;
+  $("scriptDialog").showModal();
+  const copied = await copyText(lastScript);
+  $("scriptSummary").textContent =
+    `${copied ? "Copied to clipboard" : "Copy was blocked, script is selected below"} · ` +
+    `${entries.length} rows · ${skippedSundays} Sundays excluded (no button on site)`;
+}
 
-  try {
-    await navigator.clipboard.writeText(script);
-  } catch {
-    out.select(); // clipboard API blocked (e.g. no HTTPS) -- fall back to manual copy
-  }
+$("generateBtn").onclick = generate;
+$("copyScriptBtn").onclick = async () => {
+  if (await copyText(lastScript)) toast("Copied to clipboard");
+  else toast("Copy blocked, script is selected: press Ctrl/⌘+C", "warn");
+};
+$("downloadScriptBtn").onclick = () => download("script.generated.js", lastScript, "text/javascript");
 
-  const blob = new Blob([script], { type: "text/javascript" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "script.generated.js";
-  a.click();
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+$("kbdHint").textContent = isMac ? "⌘↵" : "Ctrl ↵";
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); generate(); }
+});
 
-  alert(`Generated script.generated.js and copied to clipboard (or select the text box below if copy was blocked).\n${entries.length} rows (${skippedSundays} Sundays excluded — no button on site).`);
+// ---- dialogs & toasts ----
+function confirmAsk(title, message, okLabel) {
+  const dlg = $("confirmDialog");
+  $("confirmTitle").textContent = title;
+  $("confirmMsg").textContent = message;
+  $("confirmOk").textContent = okLabel;
+  dlg.returnValue = "";
+  dlg.showModal();
+  return new Promise((resolve) => {
+    dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });
+  });
+}
+
+const TOAST_ICONS = {
+  success: '<path d="M20 6 9 17l-5-5"/>',
+  info: '<circle cx="12" cy="12" r="1"/><path d="M12 8h.01M12 11v5"/>',
+  warn: '<path d="M12 8v5M12 16h.01"/>',
+  error: '<path d="M18 6 6 18M6 6l12 12"/>',
 };
 
+function toast(message, kind = "success") {
+  const el = document.createElement("div");
+  el.className = `toast ${kind}`;
+  el.innerHTML =
+    `<span class="ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${TOAST_ICONS[kind]}</svg></span><span></span>`;
+  el.lastChild.textContent = message;
+  $("toasts").appendChild(el);
+  setTimeout(() => {
+    el.classList.add("out");
+    setTimeout(() => el.remove(), 230);
+  }, 3600);
+}
+
+// ---- autosave (per browser, best effort) ----
+let saveTimer = 0;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ days, startWeekday, rows: allRows }));
+      const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      $("saveState").textContent = `Autosaved ${t}`;
+    } catch { /* storage unavailable: autosave is only a convenience */ }
+  }, 400);
+}
+
+function restoreSession() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (!data || !Array.isArray(data.rows) || !data.rows.length) return false;
+    days = clampDays(data.days);
+    startWeekday = WEEKDAYS.includes(data.startWeekday) ? data.startWeekday : "Mon";
+    allRows = data.rows.map((r) => ({ ...newRow(""), ...r }));
+    return allRows.some((r) => r.activity || r.description);
+  } catch {
+    return false;
+  }
+}
+
+// ---- theme ----
+const THEMES = ["auto", "light", "dark"];
+const THEME_ICONS = {
+  auto: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  light: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  dark: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+};
+function applyTheme(mode) {
+  if (mode === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.dataset.theme = mode;
+  $("themeBtn").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${THEME_ICONS[mode]}</svg>`;
+  $("themeBtn").title = `Theme: ${mode} (click to change)`;
+  $("themeBtn").dataset.mode = mode;
+}
+$("themeBtn").onclick = () => {
+  const next = THEMES[(THEMES.indexOf($("themeBtn").dataset.mode) + 1) % THEMES.length];
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* ignore */ }
+};
+
+// ---- init ----
+let savedTheme = "auto";
+try { savedTheme = localStorage.getItem(THEME_KEY) || "auto"; } catch { /* ignore */ }
+applyTheme(THEMES.includes(savedTheme) ? savedTheme : "auto");
+const restored = restoreSession();
 rebuildRows();
+if (restored) toast("Restored your last session", "info");
 </script>
 </body>
 </html>
